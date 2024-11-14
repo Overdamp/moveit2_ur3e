@@ -1,0 +1,53 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "${default}",
+        "limitSymbolsToIncludedHeaders": false
+      },
+      "includePath": [
+        "/home/luke/Ros2_Directory/fibo_mobile_cobot_ws/install/rplidar_ros2/include/**",
+        "/home/luke/Ros2_Directory/fibo_mobile_cobot_ws/install/open_manipulator_p_libs/include/**",
+        "/home/luke/Ros2_Directory/fibo_mobile_cobot_ws/install/robotis_manipulator/include/**",
+        "/home/luke/Ros2_Directory/fibo_mobile_cobot_ws/install/realsense2_camera/include/**",
+        "/home/luke/Ros2_Directory/fibo_mobile_cobot_ws/install/realsense2_camera_msgs/include/**",
+        "/home/luke/Ros2_Directory/fibo_mobile_cobot_ws/install/open_manipulator_msgs/include/**",
+        "/home/luke/Ros2_Directory/fibo_mobile_cobot_ws/install/gazebo_mecanum_plugins/include/**",
+        "/home/luke/Ros2_Directory/fibo_mobile_cobot_ws/install/dynamixel_workbench_toolbox/include/**",
+        "/home/luke/Ros2_Directory/fibo_mobile_cobot_ws/install/dynamixel_sdk_custom_interfaces/include/**",
+        "/home/luke/Ros2_Directory/fibo_mobile_cobot_ws/install/dynamixel_sdk/include/**",
+        "/home/luke/Ros2_Directory/recon_ws/install/zed_topic_benchmark_component/include/**",
+        "/home/luke/Ros2_Directory/recon_ws/install/zed_topic_benchmark_interfaces/include/**",
+        "/home/luke/Ros2_Directory/recon_ws/install/zed_rgb_convert/include/**",
+        "/home/luke/Ros2_Directory/recon_ws/install/zed_aruco_localization/include/**",
+        "/home/luke/Ros2_Directory/recon_ws/install/zed_components/include/**",
+        "/home/luke/Ros2_Directory/recon_ws/install/rviz_plugin_zed_od/include/**",
+        "/home/luke/Ros2_Directory/recon_ws/install/zed_interfaces/include/**",
+        "/home/luke/Ros2_Directory/recon_ws/install/mecanum_controller/include/**",
+        "/home/luke/Ros2_Directory/zed2i_ws/install/zed_components/include/**",
+        "/home/luke/Ros2_Directory/zed2i_ws/install/zed_interfaces/include/**",
+        "/home/luke/Ros2_Directory/zed2i_ws/install/self_test/include/**",
+        "/home/luke/Ros2_Directory/zed2i_ws/install/nmea_msgs/include/**",
+        "/home/luke/Ros2_Directory/zed2i_ws/install/geodesy/include/**",
+        "/home/luke/Ros2_Directory/zed2i_ws/install/geographic_msgs/include/**",
+        "/home/luke/Ros2_Directory/zed2i_ws/install/diagnostic_updater/include/**",
+        "/home/luke/Ros2_Directory/zed2i_ws/install/diagnostic_aggregator/include/**",
+        "/home/luke/Ros2_Directory/zed2i_ws/install/angles/include/**",
+        "/home/luke/Ros2_Directory/orchid_ws/install/turtlebot3_gazebo/include/**",
+        "/home/luke/Ros2_Directory/orchid_ws/install/turtlebot3_fake_node/include/**",
+        "/home/luke/Ros2_Directory/orchid_ws/install/nav2_straightline_planner/include/**",
+        "/home/luke/Ros2_Directory/microros_ws/install/micro_ros_agent/include/**",
+        "/home/luke/Ros2_Directory/microros_ws/install/micro_ros_msgs/include/**",
+        "/opt/ros/humble/include/**",
+        "/home/luke/Ros2_Directory/ur3e_ws/src/moveit2_ur3e/ur3e_robot_description/include/**",
+        "/usr/include/**"
+      ],
+      "name": "ROS",
+      "intelliSenseMode": "gcc-x64",
+      "compilerPath": "/usr/bin/gcc",
+      "cStandard": "gnu11",
+      "cppStandard": "c++14"
+    }
+  ],
+  "version": 4
+}

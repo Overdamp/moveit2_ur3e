@@ -1,0 +1,25 @@
+moveit_setup_assistant_config:
+  urdf:
+    package: ur3e_robot_description
+    relative_path: urdf/ur3e/robot.urdf.xacro
+  srdf:
+    relative_path: config/ur3e_bot.srdf
+  package_settings:
+    author_name: Thanatchai
+    author_email: thanatchai.wong@kmutt.ac.th
+    generated_timestamp: 1731276286
+  control_xacro:
+    command:
+      - position
+    state:
+      - position
+      - velocity
+  modified_urdf:
+    xacros:
+      - control_xacro
+  control_xacro:
+    command:
+      - position
+    state:
+      - position
+      - velocity

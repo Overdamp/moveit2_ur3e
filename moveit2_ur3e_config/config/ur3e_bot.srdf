@@ -1,0 +1,354 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--This does not replace URDF, and is not an extension of URDF.
+    This is a format for representing semantic information about the robot structure.
+    A URDF file must exist for this robot as well, where the joints and the links that are referenced are defined
+-->
+<robot name="ur3e_bot">
+    <!--GROUPS: Representation of a set of joints and links. This can be useful for specifying DOF to plan for, defining arms, end effectors, etc-->
+    <!--LINKS: When a link is specified, the parent joint of that link (if it exists) is automatically included-->
+    <!--JOINTS: When a joint is specified, the child link of that joint (which will always exist) is automatically included-->
+    <!--CHAINS: When a chain is specified, all the links along the chain (including endpoints) are included in the group. Additionally, all the joints that are parents to included links are also included. This means that joints along the chain and the parent joint of the base link are included in the group-->
+    <!--SUBGROUPS: Groups can also be formed by referencing to already defined group names-->
+    <group name="arm">
+        <joint name="shoulder_pan_joint"/>
+        <joint name="shoulder_lift_joint"/>
+        <joint name="elbow_joint"/>
+        <joint name="wrist_1_joint"/>
+        <joint name="wrist_2_joint"/>
+        <joint name="wrist_3_joint"/>
+    </group>
+    <group name="gripper">
+        <joint name="right_outer_knuckle_joint"/>
+        <joint name="finger_joint"/>
+    </group>
+    <!--GROUP STATES: Purpose: Define a named state for a particular group, in terms of joint values. This is useful to define states like 'folded arms'-->
+    <group_state name="arm_home" group="arm">
+        <joint name="elbow_joint" value="0"/>
+        <joint name="shoulder_lift_joint" value="0"/>
+        <joint name="shoulder_pan_joint" value="0"/>
+        <joint name="wrist_1_joint" value="0"/>
+        <joint name="wrist_2_joint" value="0"/>
+        <joint name="wrist_3_joint" value="0"/>
+    </group_state>
+    <group_state name="arm_ready" group="arm">
+        <joint name="elbow_joint" value="0.8"/>
+        <joint name="shoulder_lift_joint" value="-1.57"/>
+        <joint name="shoulder_pan_joint" value="0"/>
+        <joint name="wrist_1_joint" value="-1.57"/>
+        <joint name="wrist_2_joint" value="-1.57"/>
+        <joint name="wrist_3_joint" value="-1.57"/>
+    </group_state>
+    <!--END EFFECTOR: Purpose: Represent information about an end effector.-->
+    <end_effector name="endeffector" parent_link="wrist_3_link" group="gripper" parent_group="arm"/>
+    <!--VIRTUAL JOINT: Purpose: this element defines a virtual joint between a robot link and an external frame of reference (considered fixed with respect to the robot)-->
+    <virtual_joint name="virtual_joint" type="fixed" parent_frame="world" child_link="Manipulator_table"/>
+    <!--PASSIVE JOINT: Purpose: this element is used to mark joints that are not actuated-->
+    <passive_joint name="right_inner_finger_joint"/>
+    <passive_joint name="right_inner_knuckle_joint"/>
+    <passive_joint name="left_inner_knuckle_joint"/>
+    <passive_joint name="left_inner_finger_joint"/>
+    <!--DISABLE COLLISIONS: By default it is assumed that any link of the robot could potentially come into collision with any other link in the robot. This tag disables collision checking between a specified pair of links. -->
+    <disable_collisions link1="Caster_Body_LF" link2="Caster_Body_LR" reason="Never"/>
+    <disable_collisions link1="Caster_Body_LF" link2="Caster_Body_RF" reason="Never"/>
+    <disable_collisions link1="Caster_Body_LF" link2="Caster_Body_RR" reason="Never"/>
+    <disable_collisions link1="Caster_Body_LF" link2="Caster_Wheel_LF" reason="Adjacent"/>
+    <disable_collisions link1="Caster_Body_LF" link2="Caster_Wheel_LR" reason="Never"/>
+    <disable_collisions link1="Caster_Body_LF" link2="Caster_Wheel_RF" reason="Never"/>
+    <disable_collisions link1="Caster_Body_LF" link2="Caster_Wheel_RR" reason="Never"/>
+    <disable_collisions link1="Caster_Body_LF" link2="Manipulator_table" reason="Adjacent"/>
+    <disable_collisions link1="Caster_Body_LF" link2="base_link_inertia" reason="Never"/>
+    <disable_collisions link1="Caster_Body_LF" link2="forearm_link" reason="Never"/>
+    <disable_collisions link1="Caster_Body_LF" link2="left_inner_finger" reason="Never"/>
+    <disable_collisions link1="Caster_Body_LF" link2="left_inner_finger_pad" reason="Never"/>
+    <disable_collisions link1="Caster_Body_LF" link2="left_inner_knuckle" reason="Never"/>
+    <disable_collisions link1="Caster_Body_LF" link2="left_outer_finger" reason="Never"/>
+    <disable_collisions link1="Caster_Body_LF" link2="left_outer_knuckle" reason="Never"/>
+    <disable_collisions link1="Caster_Body_LF" link2="right_inner_finger" reason="Never"/>
+    <disable_collisions link1="Caster_Body_LF" link2="right_inner_finger_pad" reason="Never"/>
+    <disable_collisions link1="Caster_Body_LF" link2="right_inner_knuckle" reason="Never"/>
+    <disable_collisions link1="Caster_Body_LF" link2="right_outer_finger" reason="Never"/>
+    <disable_collisions link1="Caster_Body_LF" link2="right_outer_knuckle" reason="Never"/>
+    <disable_collisions link1="Caster_Body_LF" link2="robotiq_arg2f_base_link" reason="Never"/>
+    <disable_collisions link1="Caster_Body_LF" link2="robotiq_coupler" reason="Never"/>
+    <disable_collisions link1="Caster_Body_LF" link2="shoulder_link" reason="Never"/>
+    <disable_collisions link1="Caster_Body_LF" link2="upper_arm_link" reason="Never"/>
+    <disable_collisions link1="Caster_Body_LF" link2="wrist_1_link" reason="Never"/>
+    <disable_collisions link1="Caster_Body_LF" link2="wrist_2_link" reason="Never"/>
+    <disable_collisions link1="Caster_Body_LF" link2="wrist_3_link" reason="Never"/>
+    <disable_collisions link1="Caster_Body_LR" link2="Caster_Body_RF" reason="Never"/>
+    <disable_collisions link1="Caster_Body_LR" link2="Caster_Body_RR" reason="Never"/>
+    <disable_collisions link1="Caster_Body_LR" link2="Caster_Wheel_LF" reason="Never"/>
+    <disable_collisions link1="Caster_Body_LR" link2="Caster_Wheel_LR" reason="Adjacent"/>
+    <disable_collisions link1="Caster_Body_LR" link2="Caster_Wheel_RF" reason="Never"/>
+    <disable_collisions link1="Caster_Body_LR" link2="Caster_Wheel_RR" reason="Never"/>
+    <disable_collisions link1="Caster_Body_LR" link2="Manipulator_table" reason="Adjacent"/>
+    <disable_collisions link1="Caster_Body_LR" link2="base_link_inertia" reason="Never"/>
+    <disable_collisions link1="Caster_Body_LR" link2="forearm_link" reason="Never"/>
+    <disable_collisions link1="Caster_Body_LR" link2="left_inner_finger" reason="Never"/>
+    <disable_collisions link1="Caster_Body_LR" link2="left_inner_finger_pad" reason="Never"/>
+    <disable_collisions link1="Caster_Body_LR" link2="left_inner_knuckle" reason="Never"/>
+    <disable_collisions link1="Caster_Body_LR" link2="left_outer_finger" reason="Never"/>
+    <disable_collisions link1="Caster_Body_LR" link2="left_outer_knuckle" reason="Never"/>
+    <disable_collisions link1="Caster_Body_LR" link2="right_inner_finger" reason="Never"/>
+    <disable_collisions link1="Caster_Body_LR" link2="right_inner_finger_pad" reason="Never"/>
+    <disable_collisions link1="Caster_Body_LR" link2="right_inner_knuckle" reason="Never"/>
+    <disable_collisions link1="Caster_Body_LR" link2="right_outer_finger" reason="Never"/>
+    <disable_collisions link1="Caster_Body_LR" link2="right_outer_knuckle" reason="Never"/>
+    <disable_collisions link1="Caster_Body_LR" link2="robotiq_arg2f_base_link" reason="Never"/>
+    <disable_collisions link1="Caster_Body_LR" link2="robotiq_coupler" reason="Never"/>
+    <disable_collisions link1="Caster_Body_LR" link2="shoulder_link" reason="Never"/>
+    <disable_collisions link1="Caster_Body_LR" link2="upper_arm_link" reason="Never"/>
+    <disable_collisions link1="Caster_Body_LR" link2="wrist_1_link" reason="Never"/>
+    <disable_collisions link1="Caster_Body_LR" link2="wrist_2_link" reason="Never"/>
+    <disable_collisions link1="Caster_Body_LR" link2="wrist_3_link" reason="Never"/>
+    <disable_collisions link1="Caster_Body_RF" link2="Caster_Body_RR" reason="Never"/>
+    <disable_collisions link1="Caster_Body_RF" link2="Caster_Wheel_LF" reason="Never"/>
+    <disable_collisions link1="Caster_Body_RF" link2="Caster_Wheel_LR" reason="Never"/>
+    <disable_collisions link1="Caster_Body_RF" link2="Caster_Wheel_RF" reason="Adjacent"/>
+    <disable_collisions link1="Caster_Body_RF" link2="Caster_Wheel_RR" reason="Never"/>
+    <disable_collisions link1="Caster_Body_RF" link2="Manipulator_table" reason="Adjacent"/>
+    <disable_collisions link1="Caster_Body_RF" link2="base_link_inertia" reason="Never"/>
+    <disable_collisions link1="Caster_Body_RF" link2="forearm_link" reason="Never"/>
+    <disable_collisions link1="Caster_Body_RF" link2="left_inner_finger" reason="Never"/>
+    <disable_collisions link1="Caster_Body_RF" link2="left_inner_finger_pad" reason="Never"/>
+    <disable_collisions link1="Caster_Body_RF" link2="left_inner_knuckle" reason="Never"/>
+    <disable_collisions link1="Caster_Body_RF" link2="left_outer_finger" reason="Never"/>
+    <disable_collisions link1="Caster_Body_RF" link2="left_outer_knuckle" reason="Never"/>
+    <disable_collisions link1="Caster_Body_RF" link2="right_inner_finger" reason="Never"/>
+    <disable_collisions link1="Caster_Body_RF" link2="right_inner_finger_pad" reason="Never"/>
+    <disable_collisions link1="Caster_Body_RF" link2="right_inner_knuckle" reason="Never"/>
+    <disable_collisions link1="Caster_Body_RF" link2="right_outer_finger" reason="Never"/>
+    <disable_collisions link1="Caster_Body_RF" link2="right_outer_knuckle" reason="Never"/>
+    <disable_collisions link1="Caster_Body_RF" link2="robotiq_arg2f_base_link" reason="Never"/>
+    <disable_collisions link1="Caster_Body_RF" link2="robotiq_coupler" reason="Never"/>
+    <disable_collisions link1="Caster_Body_RF" link2="shoulder_link" reason="Never"/>
+    <disable_collisions link1="Caster_Body_RF" link2="upper_arm_link" reason="Never"/>
+    <disable_collisions link1="Caster_Body_RF" link2="wrist_1_link" reason="Never"/>
+    <disable_collisions link1="Caster_Body_RF" link2="wrist_2_link" reason="Never"/>
+    <disable_collisions link1="Caster_Body_RF" link2="wrist_3_link" reason="Never"/>
+    <disable_collisions link1="Caster_Body_RR" link2="Caster_Wheel_LF" reason="Never"/>
+    <disable_collisions link1="Caster_Body_RR" link2="Caster_Wheel_LR" reason="Never"/>
+    <disable_collisions link1="Caster_Body_RR" link2="Caster_Wheel_RF" reason="Never"/>
+    <disable_collisions link1="Caster_Body_RR" link2="Caster_Wheel_RR" reason="Adjacent"/>
+    <disable_collisions link1="Caster_Body_RR" link2="Manipulator_table" reason="Adjacent"/>
+    <disable_collisions link1="Caster_Body_RR" link2="base_link_inertia" reason="Never"/>
+    <disable_collisions link1="Caster_Body_RR" link2="forearm_link" reason="Never"/>
+    <disable_collisions link1="Caster_Body_RR" link2="left_inner_finger" reason="Never"/>
+    <disable_collisions link1="Caster_Body_RR" link2="left_inner_finger_pad" reason="Never"/>
+    <disable_collisions link1="Caster_Body_RR" link2="left_inner_knuckle" reason="Never"/>
+    <disable_collisions link1="Caster_Body_RR" link2="left_outer_finger" reason="Never"/>
+    <disable_collisions link1="Caster_Body_RR" link2="left_outer_knuckle" reason="Never"/>
+    <disable_collisions link1="Caster_Body_RR" link2="right_inner_finger" reason="Never"/>
+    <disable_collisions link1="Caster_Body_RR" link2="right_inner_finger_pad" reason="Never"/>
+    <disable_collisions link1="Caster_Body_RR" link2="right_inner_knuckle" reason="Never"/>
+    <disable_collisions link1="Caster_Body_RR" link2="right_outer_finger" reason="Never"/>
+    <disable_collisions link1="Caster_Body_RR" link2="right_outer_knuckle" reason="Never"/>
+    <disable_collisions link1="Caster_Body_RR" link2="robotiq_arg2f_base_link" reason="Never"/>
+    <disable_collisions link1="Caster_Body_RR" link2="robotiq_coupler" reason="Never"/>
+    <disable_collisions link1="Caster_Body_RR" link2="shoulder_link" reason="Never"/>
+    <disable_collisions link1="Caster_Body_RR" link2="upper_arm_link" reason="Never"/>
+    <disable_collisions link1="Caster_Body_RR" link2="wrist_1_link" reason="Never"/>
+    <disable_collisions link1="Caster_Body_RR" link2="wrist_2_link" reason="Never"/>
+    <disable_collisions link1="Caster_Body_RR" link2="wrist_3_link" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_LF" link2="Caster_Wheel_LR" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_LF" link2="Caster_Wheel_RF" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_LF" link2="Caster_Wheel_RR" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_LF" link2="Manipulator_table" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_LF" link2="base_link_inertia" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_LF" link2="forearm_link" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_LF" link2="left_inner_finger" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_LF" link2="left_inner_finger_pad" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_LF" link2="left_inner_knuckle" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_LF" link2="left_outer_finger" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_LF" link2="left_outer_knuckle" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_LF" link2="right_inner_finger" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_LF" link2="right_inner_finger_pad" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_LF" link2="right_inner_knuckle" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_LF" link2="right_outer_finger" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_LF" link2="right_outer_knuckle" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_LF" link2="robotiq_arg2f_base_link" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_LF" link2="robotiq_coupler" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_LF" link2="shoulder_link" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_LF" link2="upper_arm_link" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_LF" link2="wrist_1_link" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_LF" link2="wrist_2_link" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_LF" link2="wrist_3_link" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_LR" link2="Caster_Wheel_RF" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_LR" link2="Caster_Wheel_RR" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_LR" link2="Manipulator_table" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_LR" link2="base_link_inertia" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_LR" link2="forearm_link" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_LR" link2="left_inner_finger" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_LR" link2="left_inner_finger_pad" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_LR" link2="left_inner_knuckle" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_LR" link2="left_outer_finger" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_LR" link2="left_outer_knuckle" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_LR" link2="right_inner_finger" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_LR" link2="right_inner_finger_pad" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_LR" link2="right_inner_knuckle" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_LR" link2="right_outer_finger" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_LR" link2="right_outer_knuckle" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_LR" link2="robotiq_arg2f_base_link" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_LR" link2="robotiq_coupler" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_LR" link2="shoulder_link" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_LR" link2="upper_arm_link" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_LR" link2="wrist_1_link" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_LR" link2="wrist_2_link" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_LR" link2="wrist_3_link" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_RF" link2="Caster_Wheel_RR" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_RF" link2="Manipulator_table" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_RF" link2="base_link_inertia" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_RF" link2="forearm_link" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_RF" link2="left_inner_finger" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_RF" link2="left_inner_finger_pad" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_RF" link2="left_inner_knuckle" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_RF" link2="left_outer_finger" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_RF" link2="left_outer_knuckle" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_RF" link2="right_inner_finger" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_RF" link2="right_inner_finger_pad" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_RF" link2="right_inner_knuckle" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_RF" link2="right_outer_finger" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_RF" link2="right_outer_knuckle" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_RF" link2="robotiq_arg2f_base_link" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_RF" link2="robotiq_coupler" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_RF" link2="shoulder_link" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_RF" link2="upper_arm_link" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_RF" link2="wrist_1_link" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_RF" link2="wrist_2_link" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_RF" link2="wrist_3_link" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_RR" link2="Manipulator_table" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_RR" link2="base_link_inertia" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_RR" link2="forearm_link" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_RR" link2="left_inner_finger" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_RR" link2="left_inner_finger_pad" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_RR" link2="left_inner_knuckle" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_RR" link2="left_outer_finger" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_RR" link2="left_outer_knuckle" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_RR" link2="right_inner_finger" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_RR" link2="right_inner_finger_pad" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_RR" link2="right_inner_knuckle" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_RR" link2="right_outer_finger" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_RR" link2="right_outer_knuckle" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_RR" link2="robotiq_arg2f_base_link" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_RR" link2="robotiq_coupler" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_RR" link2="shoulder_link" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_RR" link2="upper_arm_link" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_RR" link2="wrist_1_link" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_RR" link2="wrist_2_link" reason="Never"/>
+    <disable_collisions link1="Caster_Wheel_RR" link2="wrist_3_link" reason="Never"/>
+    <disable_collisions link1="Manipulator_table" link2="base_link_inertia" reason="Adjacent"/>
+    <disable_collisions link1="Manipulator_table" link2="shoulder_link" reason="Never"/>
+    <disable_collisions link1="base_link_inertia" link2="shoulder_link" reason="Adjacent"/>
+    <disable_collisions link1="base_link_inertia" link2="upper_arm_link" reason="Never"/>
+    <disable_collisions link1="base_link_inertia" link2="wrist_1_link" reason="Never"/>
+    <disable_collisions link1="base_link_inertia" link2="wrist_2_link" reason="Never"/>
+    <disable_collisions link1="forearm_link" link2="upper_arm_link" reason="Adjacent"/>
+    <disable_collisions link1="forearm_link" link2="wrist_1_link" reason="Adjacent"/>
+    <disable_collisions link1="left_inner_finger" link2="left_inner_finger_pad" reason="Adjacent"/>
+    <disable_collisions link1="left_inner_finger" link2="left_inner_knuckle" reason="Default"/>
+    <disable_collisions link1="left_inner_finger" link2="left_outer_finger" reason="Adjacent"/>
+    <disable_collisions link1="left_inner_finger" link2="left_outer_knuckle" reason="Never"/>
+    <disable_collisions link1="left_inner_finger" link2="right_inner_finger" reason="Never"/>
+    <disable_collisions link1="left_inner_finger" link2="right_inner_finger_pad" reason="Never"/>
+    <disable_collisions link1="left_inner_finger" link2="right_inner_knuckle" reason="Never"/>
+    <disable_collisions link1="left_inner_finger" link2="right_outer_finger" reason="Never"/>
+    <disable_collisions link1="left_inner_finger" link2="right_outer_knuckle" reason="Never"/>
+    <disable_collisions link1="left_inner_finger" link2="robotiq_arg2f_base_link" reason="Never"/>
+    <disable_collisions link1="left_inner_finger" link2="robotiq_coupler" reason="Never"/>
+    <disable_collisions link1="left_inner_finger" link2="wrist_1_link" reason="Never"/>
+    <disable_collisions link1="left_inner_finger" link2="wrist_2_link" reason="Never"/>
+    <disable_collisions link1="left_inner_finger" link2="wrist_3_link" reason="Never"/>
+    <disable_collisions link1="left_inner_finger_pad" link2="left_inner_knuckle" reason="Never"/>
+    <disable_collisions link1="left_inner_finger_pad" link2="left_outer_finger" reason="Never"/>
+    <disable_collisions link1="left_inner_finger_pad" link2="left_outer_knuckle" reason="Never"/>
+    <disable_collisions link1="left_inner_finger_pad" link2="right_inner_finger" reason="Never"/>
+    <disable_collisions link1="left_inner_finger_pad" link2="right_inner_knuckle" reason="Never"/>
+    <disable_collisions link1="left_inner_finger_pad" link2="right_outer_finger" reason="Never"/>
+    <disable_collisions link1="left_inner_finger_pad" link2="right_outer_knuckle" reason="Never"/>
+    <disable_collisions link1="left_inner_finger_pad" link2="robotiq_arg2f_base_link" reason="Never"/>
+    <disable_collisions link1="left_inner_finger_pad" link2="robotiq_coupler" reason="Never"/>
+    <disable_collisions link1="left_inner_finger_pad" link2="wrist_1_link" reason="Never"/>
+    <disable_collisions link1="left_inner_finger_pad" link2="wrist_2_link" reason="Never"/>
+    <disable_collisions link1="left_inner_finger_pad" link2="wrist_3_link" reason="Never"/>
+    <disable_collisions link1="left_inner_knuckle" link2="left_outer_finger" reason="Never"/>
+    <disable_collisions link1="left_inner_knuckle" link2="left_outer_knuckle" reason="Default"/>
+    <disable_collisions link1="left_inner_knuckle" link2="right_inner_finger" reason="Never"/>
+    <disable_collisions link1="left_inner_knuckle" link2="right_inner_finger_pad" reason="Never"/>
+    <disable_collisions link1="left_inner_knuckle" link2="right_inner_knuckle" reason="Never"/>
+    <disable_collisions link1="left_inner_knuckle" link2="right_outer_finger" reason="Never"/>
+    <disable_collisions link1="left_inner_knuckle" link2="right_outer_knuckle" reason="Never"/>
+    <disable_collisions link1="left_inner_knuckle" link2="robotiq_arg2f_base_link" reason="Adjacent"/>
+    <disable_collisions link1="left_inner_knuckle" link2="robotiq_coupler" reason="Never"/>
+    <disable_collisions link1="left_inner_knuckle" link2="wrist_1_link" reason="Never"/>
+    <disable_collisions link1="left_inner_knuckle" link2="wrist_2_link" reason="Never"/>
+    <disable_collisions link1="left_inner_knuckle" link2="wrist_3_link" reason="Never"/>
+    <disable_collisions link1="left_outer_finger" link2="left_outer_knuckle" reason="Adjacent"/>
+    <disable_collisions link1="left_outer_finger" link2="right_inner_finger" reason="Never"/>
+    <disable_collisions link1="left_outer_finger" link2="right_inner_finger_pad" reason="Never"/>
+    <disable_collisions link1="left_outer_finger" link2="right_inner_knuckle" reason="Never"/>
+    <disable_collisions link1="left_outer_finger" link2="right_outer_finger" reason="Never"/>
+    <disable_collisions link1="left_outer_finger" link2="right_outer_knuckle" reason="Never"/>
+    <disable_collisions link1="left_outer_finger" link2="robotiq_arg2f_base_link" reason="Never"/>
+    <disable_collisions link1="left_outer_finger" link2="robotiq_coupler" reason="Never"/>
+    <disable_collisions link1="left_outer_finger" link2="wrist_1_link" reason="Never"/>
+    <disable_collisions link1="left_outer_finger" link2="wrist_2_link" reason="Never"/>
+    <disable_collisions link1="left_outer_finger" link2="wrist_3_link" reason="Never"/>
+    <disable_collisions link1="left_outer_knuckle" link2="right_inner_finger" reason="Never"/>
+    <disable_collisions link1="left_outer_knuckle" link2="right_inner_finger_pad" reason="Never"/>
+    <disable_collisions link1="left_outer_knuckle" link2="right_inner_knuckle" reason="Never"/>
+    <disable_collisions link1="left_outer_knuckle" link2="right_outer_finger" reason="Never"/>
+    <disable_collisions link1="left_outer_knuckle" link2="right_outer_knuckle" reason="Never"/>
+    <disable_collisions link1="left_outer_knuckle" link2="robotiq_arg2f_base_link" reason="Adjacent"/>
+    <disable_collisions link1="left_outer_knuckle" link2="robotiq_coupler" reason="Never"/>
+    <disable_collisions link1="left_outer_knuckle" link2="wrist_1_link" reason="Never"/>
+    <disable_collisions link1="left_outer_knuckle" link2="wrist_2_link" reason="Never"/>
+    <disable_collisions link1="left_outer_knuckle" link2="wrist_3_link" reason="Never"/>
+    <disable_collisions link1="right_inner_finger" link2="right_inner_finger_pad" reason="Adjacent"/>
+    <disable_collisions link1="right_inner_finger" link2="right_inner_knuckle" reason="Default"/>
+    <disable_collisions link1="right_inner_finger" link2="right_outer_finger" reason="Adjacent"/>
+    <disable_collisions link1="right_inner_finger" link2="right_outer_knuckle" reason="Never"/>
+    <disable_collisions link1="right_inner_finger" link2="robotiq_arg2f_base_link" reason="Never"/>
+    <disable_collisions link1="right_inner_finger" link2="robotiq_coupler" reason="Never"/>
+    <disable_collisions link1="right_inner_finger" link2="wrist_1_link" reason="Never"/>
+    <disable_collisions link1="right_inner_finger" link2="wrist_2_link" reason="Never"/>
+    <disable_collisions link1="right_inner_finger" link2="wrist_3_link" reason="Never"/>
+    <disable_collisions link1="right_inner_finger_pad" link2="right_inner_knuckle" reason="Never"/>
+    <disable_collisions link1="right_inner_finger_pad" link2="right_outer_finger" reason="Never"/>
+    <disable_collisions link1="right_inner_finger_pad" link2="right_outer_knuckle" reason="Never"/>
+    <disable_collisions link1="right_inner_finger_pad" link2="robotiq_arg2f_base_link" reason="Never"/>
+    <disable_collisions link1="right_inner_finger_pad" link2="robotiq_coupler" reason="Never"/>
+    <disable_collisions link1="right_inner_finger_pad" link2="wrist_1_link" reason="Never"/>
+    <disable_collisions link1="right_inner_finger_pad" link2="wrist_2_link" reason="Never"/>
+    <disable_collisions link1="right_inner_finger_pad" link2="wrist_3_link" reason="Never"/>
+    <disable_collisions link1="right_inner_knuckle" link2="right_outer_finger" reason="Never"/>
+    <disable_collisions link1="right_inner_knuckle" link2="right_outer_knuckle" reason="Default"/>
+    <disable_collisions link1="right_inner_knuckle" link2="robotiq_arg2f_base_link" reason="Adjacent"/>
+    <disable_collisions link1="right_inner_knuckle" link2="robotiq_coupler" reason="Never"/>
+    <disable_collisions link1="right_inner_knuckle" link2="wrist_1_link" reason="Never"/>
+    <disable_collisions link1="right_inner_knuckle" link2="wrist_2_link" reason="Never"/>
+    <disable_collisions link1="right_inner_knuckle" link2="wrist_3_link" reason="Never"/>
+    <disable_collisions link1="right_outer_finger" link2="right_outer_knuckle" reason="Adjacent"/>
+    <disable_collisions link1="right_outer_finger" link2="robotiq_arg2f_base_link" reason="Never"/>
+    <disable_collisions link1="right_outer_finger" link2="robotiq_coupler" reason="Never"/>
+    <disable_collisions link1="right_outer_finger" link2="wrist_1_link" reason="Never"/>
+    <disable_collisions link1="right_outer_finger" link2="wrist_2_link" reason="Never"/>
+    <disable_collisions link1="right_outer_finger" link2="wrist_3_link" reason="Never"/>
+    <disable_collisions link1="right_outer_knuckle" link2="robotiq_arg2f_base_link" reason="Adjacent"/>
+    <disable_collisions link1="right_outer_knuckle" link2="robotiq_coupler" reason="Never"/>
+    <disable_collisions link1="right_outer_knuckle" link2="wrist_1_link" reason="Never"/>
+    <disable_collisions link1="right_outer_knuckle" link2="wrist_2_link" reason="Never"/>
+    <disable_collisions link1="right_outer_knuckle" link2="wrist_3_link" reason="Never"/>
+    <disable_collisions link1="robotiq_arg2f_base_link" link2="robotiq_coupler" reason="Adjacent"/>
+    <disable_collisions link1="robotiq_arg2f_base_link" link2="wrist_1_link" reason="Never"/>
+    <disable_collisions link1="robotiq_arg2f_base_link" link2="wrist_2_link" reason="Never"/>
+    <disable_collisions link1="robotiq_arg2f_base_link" link2="wrist_3_link" reason="Never"/>
+    <disable_collisions link1="robotiq_coupler" link2="wrist_1_link" reason="Never"/>
+    <disable_collisions link1="robotiq_coupler" link2="wrist_2_link" reason="Never"/>
+    <disable_collisions link1="robotiq_coupler" link2="wrist_3_link" reason="Adjacent"/>
+    <disable_collisions link1="shoulder_link" link2="upper_arm_link" reason="Adjacent"/>
+    <disable_collisions link1="shoulder_link" link2="wrist_1_link" reason="Never"/>
+    <disable_collisions link1="shoulder_link" link2="wrist_2_link" reason="Never"/>
+    <disable_collisions link1="wrist_1_link" link2="wrist_2_link" reason="Adjacent"/>
+    <disable_collisions link1="wrist_1_link" link2="wrist_3_link" reason="Never"/>
+    <disable_collisions link1="wrist_2_link" link2="wrist_3_link" reason="Adjacent"/>
+</robot>

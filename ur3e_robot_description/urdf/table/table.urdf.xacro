@@ -1,0 +1,471 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This URDF was automatically created by SolidWorks to URDF Exporter! Originally created by Stephen Brawner (brawner@gmail.com) 
+     Commit Version: 1.6.0-4-g7f85cfe  Build Version: 1.6.7995.38578
+     For more information, please see http://wiki.ros.org/sw_urdf_exporter -->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro"
+  name="M_table_1">
+  <link
+    name="Manipulator_table">
+    <inertial>
+      <origin
+        xyz="-1.11022302462516E-16 -3.33066907387547E-16 -0.12843839742467"
+        rpy="0 0 0" />
+      <mass
+        value="9.44837783117277" />
+      <inertia
+        ixx="0.263691414833342"
+        ixy="-2.16344567972567E-17"
+        ixz="7.54463426580892E-19"
+        iyy="0.221672763716765"
+        iyz="4.92737402253372E-20"
+        izz="0.320610679708212" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ur3e_robot_description/meshes/table/Manipulator_table.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ur3e_robot_description/meshes/table/Manipulator_table.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <link
+    name="Caster_Body_RR">
+    <inertial>
+      <origin
+        xyz="-0.0010819914602479 -2.86080234945807E-06 -0.0436046218691041"
+        rpy="0 0 0" />
+      <mass
+        value="0.401423455702813" />
+      <inertia
+        ixx="0.000241401012917318"
+        ixy="-2.45853840008132E-08"
+        ixz="8.72091409234467E-07"
+        iyy="0.000298338270939389"
+        iyz="-6.11684660408836E-10"
+        izz="0.000239127388240778" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ur3e_robot_description/meshes/table/Caster_Body_RR.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ur3e_robot_description/meshes/table/Caster_Body_RR.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="J_Caster_Body_RR"
+    type="fixed">
+    <origin
+      xyz="-0.265 -0.335 -0.683"
+      rpy="0 0 -0.0941732290527097" />
+    <parent
+      link="Manipulator_table" />
+    <child
+      link="Caster_Body_RR" />
+    <axis
+      xyz="0 0 1" />
+  </joint>
+  <link
+    name="Caster_Wheel_RR">
+    <inertial>
+      <origin
+        xyz="-1.11022302462516E-16 3.46944695195361E-18 1.11022302462516E-16"
+        rpy="0 0 0" />
+      <mass
+        value="0.132136244110216" />
+      <inertia
+        ixx="5.61757127027404E-05"
+        ixy="1.66435558133998E-21"
+        ixz="-4.2351647362715E-22"
+        iyy="5.61757127027403E-05"
+        iyz="-1.30158555596785E-21"
+        izz="9.26404044822224E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ur3e_robot_description/meshes/table/Caster_Wheel_RR.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.298039215686275 0.298039215686275 0.298039215686275 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ur3e_robot_description/meshes/table/Caster_Wheel_RR.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="J_Caster_Wheel_RR"
+    type="fixed">
+    <origin
+      xyz="-0.0344500000000002 0 -0.056225"
+      rpy="1.5707963267949 0 0" />
+    <parent
+      link="Caster_Body_RR" />
+    <child
+      link="Caster_Wheel_RR" />
+    <axis
+      xyz="0 0 -1" />
+  </joint>
+  <link
+    name="Caster_Body_RF">
+    <inertial>
+      <origin
+        xyz="-0.00108199157851491 -2.86062615473259E-06 -0.0436046217372837"
+        rpy="0 0 0" />
+      <mass
+        value="0.401423458524117" />
+      <inertia
+        ixx="0.000241401013878427"
+        ixy="-2.45831797236014E-08"
+        ixz="8.72092344291227E-07"
+        iyy="0.000298338271551571"
+        iyz="-6.12822902530198E-10"
+        izz="0.000239127388381237" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ur3e_robot_description/meshes/table/Caster_Body_RF.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ur3e_robot_description/meshes/table/Caster_Body_RF.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="J_Caster_Body_RF"
+    type="fixed">
+    <origin
+      xyz="0.265 -0.335 -0.683"
+      rpy="0 0 -0.101833662211255" />
+    <parent
+      link="Manipulator_table" />
+    <child
+      link="Caster_Body_RF" />
+    <axis
+      xyz="0 0 1" />
+  </joint>
+  <link
+    name="Caster_Wheel_RF">
+    <inertial>
+      <origin
+        xyz="-2.77555756156289E-17 0 -1.11022302462516E-16"
+        rpy="0 0 0" />
+      <mass
+        value="0.132136244110216" />
+      <inertia
+        ixx="5.61757127027405E-05"
+        ixy="3.43126324185448E-21"
+        ixz="-6.7762635780344E-21"
+        iyy="5.61757127027405E-05"
+        iyz="5.67015494947863E-21"
+        izz="9.26404044822227E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ur3e_robot_description/meshes/table/Caster_Wheel_RF.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.298039215686275 0.298039215686275 0.298039215686275 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ur3e_robot_description/meshes/table/Caster_Wheel_RF.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="J_Caster_Wheel_RF"
+    type="fixed">
+    <origin
+      xyz="-0.0344499999999999 0 -0.056225"
+      rpy="1.5707963267949 0 0" />
+    <parent
+      link="Caster_Body_RF" />
+    <child
+      link="Caster_Wheel_RF" />
+    <axis
+      xyz="0 0 -1" />
+  </joint>
+  <link
+    name="Caster_Body_LR">
+    <inertial>
+      <origin
+        xyz="-0.00108199158371591 -2.86062812537846E-06 -0.0436046217365273"
+        rpy="0 0 0" />
+      <mass
+        value="0.401423458405097" />
+      <inertia
+        ixx="0.000241401013850428"
+        ixy="-2.45831616665869E-08"
+        ixz="8.72092308562468E-07"
+        iyy="0.000298338271473234"
+        iyz="-6.12834050320692E-10"
+        izz="0.000239127388320259" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ur3e_robot_description/meshes/table/Caster_Body_LR.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ur3e_robot_description/meshes/table/Caster_Body_LR.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="J_Caster_Body_LR"
+    type="fixed">
+    <origin
+      xyz="-0.265 0.335 -0.683"
+      rpy="0 0 -0.101833662211255" />
+    <parent
+      link="Manipulator_table" />
+    <child
+      link="Caster_Body_LR" />
+    <axis
+      xyz="0 0 1" />
+  </joint>
+  <link
+    name="Caster_Wheel_LR">
+    <inertial>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <mass
+        value="0.132136244110216" />
+      <inertia
+        ixx="5.61757127027404E-05"
+        ixy="-9.99488879800872E-22"
+        ixz="-1.3976043629696E-20"
+        iyy="5.61757127027403E-05"
+        iyz="6.4983051750949E-22"
+        izz="9.26404044822225E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ur3e_robot_description/meshes/table/Caster_Wheel_LR.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.298039215686275 0.298039215686275 0.298039215686275 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ur3e_robot_description/meshes/table/Caster_Wheel_LR.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="J_Caster_Wheel_LR"
+    type="fixed">
+    <origin
+      xyz="-0.0344500000000002 0 -0.0562249999999998"
+      rpy="1.5707963267949 0 0" />
+    <parent
+      link="Caster_Body_LR" />
+    <child
+      link="Caster_Wheel_LR" />
+    <axis
+      xyz="0 0 -1" />
+  </joint>
+  <link
+    name="Caster_Body_LF">
+    <inertial>
+      <origin
+        xyz="-0.00108199158371469 -2.86062813779908E-06 -0.0436046217365266"
+        rpy="0 0 0" />
+      <mass
+        value="0.401423458405148" />
+      <inertia
+        ixx="0.00024140101385046"
+        ixy="-2.45831617231281E-08"
+        ixz="8.72092308559734E-07"
+        iyy="0.000298338271473235"
+        iyz="-6.12833973194068E-10"
+        izz="0.000239127388320258" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ur3e_robot_description/meshes/table/Caster_Body_LF.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ur3e_robot_description/meshes/table/Caster_Body_LF.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="J_Caster_Body_LF"
+    type="fixed">
+    <origin
+      xyz="0.265 0.335 -0.683"
+      rpy="0 0 -0.101833662211255" />
+    <parent
+      link="Manipulator_table" />
+    <child
+      link="Caster_Body_LF" />
+    <axis
+      xyz="0 0 1" />
+  </joint>
+  <link
+    name="Caster_Wheel_LF">
+    <inertial>
+      <origin
+        xyz="0 -3.46944695195361E-18 -1.38777878078145E-17"
+        rpy="0 0 0" />
+      <mass
+        value="0.132136244110216" />
+      <inertia
+        ixx="5.61757127027404E-05"
+        ixy="5.44753992083278E-21"
+        ixz="-9.3173624197973E-21"
+        iyy="5.61757127027404E-05"
+        iyz="4.35034367839207E-21"
+        izz="9.26404044822226E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ur3e_robot_description/meshes/table/Caster_Wheel_LF.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.298039215686275 0.298039215686275 0.298039215686275 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ur3e_robot_description/meshes/table/Caster_Wheel_LF.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="J_Caster_Wheel_LF"
+    type="fixed">
+    <origin
+      xyz="-0.0344499999999998 0 -0.056225"
+      rpy="1.5707963267949 0 0" />
+    <parent
+      link="Caster_Body_LF" />
+    <child
+      link="Caster_Wheel_LF" />
+    <axis
+      xyz="0 0 -1" />
+  </joint>
+</robot>
