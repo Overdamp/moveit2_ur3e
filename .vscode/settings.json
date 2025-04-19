@@ -66,5 +66,6 @@
         "/home/luke/Ros2_Directory/zm_robot_ws/install/zm_robot_programing/lib/python3.10/site-packages",
         "/opt/ros/humble/lib/python3.10/site-packages",
         "/opt/ros/humble/local/lib/python3.10/dist-packages"
-    ]
+    ],
+    "cmake.sourceDirectory": "/home/cobot/Ros2_directory/ur3e_ws/src/moveit2_ur3e_config"
 }

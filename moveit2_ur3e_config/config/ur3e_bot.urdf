@@ -938,12 +938,12 @@
     </inertial>
   </link>
   <joint name="robotiq_coupler_joint" type="fixed">
-    <origin rpy="0 0 -1.5707963267948966" xyz="0 0 0.004"/>
+    <origin rpy="0 0 0" xyz="0 0 0.004"/>
     <parent link="tool0"/>
     <child link="robotiq_coupler"/>
   </joint>
   <joint name="ur3e_robotiq_2f_140_joint" type="fixed">
-    <origin rpy="0 0 -1.5707963267948966" xyz="0 0 0.004"/>
+    <origin rpy="0 0 0" xyz="0 0 0.004"/>
     <parent link="robotiq_coupler"/>
     <child link="robotiq_arg2f_base_link"/>
   </joint>

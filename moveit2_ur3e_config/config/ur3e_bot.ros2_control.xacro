@@ -7,9 +7,9 @@
             <hardware>
                 <!-- By default, set up controllers for simulation. This won't work on real hardware -->
                 <!-- plugin>mock_components/GenericSystem</plugin -->
-                <plugin>topic_based_ros2_control/TopicBasedSystem</plugin>
+                <!-- <plugin>topic_based_ros2_control/TopicBasedSystem</plugin>
                 <param name="joint_commands_topic">/isaac_joint_commands</param>
-                <param name="joint_states_topic">/isaac_joint_states</param>
+                <param name="joint_states_topic">/isaac_joint_states</param> -->
             </hardware>
             <joint name="shoulder_pan_joint">
                 <command_interface name="position"/>
