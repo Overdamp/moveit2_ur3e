@@ -1,0 +1,6 @@
+[submodule "manipulator_vr_teleop"]
+	path = manipulator_vr_teleop
+	url = https://github.com/Overdamp/manipulator_vr_teleop.git
+[submodule "external/my-submodule"]
+	path = external/my-submodule
+	url = https://github.com/Overdamp/manipulator_vr_teleop.git
