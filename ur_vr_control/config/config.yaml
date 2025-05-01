@@ -1,0 +1,27 @@
+vr_client:
+  server_ip: "10.9.164.219"
+  server_port: 5555
+  reconnect_interval: 5.0
+  socket_timeout: 10.0
+robot_control:
+  robot_ip: "192.168.20.35"
+  robot_port: 30002
+  max_speed: 0.3
+  acceleration: 0.05
+  workspace_limits:
+    x_min: -0.5
+    x_max: 0.5
+    y_min: -0.5
+    y_max: 0.5
+    z_min: 1.2
+    z_max: 2.2
+  max_velocity: 0.5
+servoj:
+  time: 1.2
+  lookahead_time: 0.05
+  gain: 0.008
+smoothing:
+  pose_alpha: 0.8
+  velocity_alpha: 0.8
+diagnostics:
+  publish_rate: 1.0

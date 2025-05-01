@@ -1,86 +1,231 @@
 #!/usr/bin/env python3
-import socket
 import rclpy
 from rclpy.node import Node
-from geometry_msgs.msg import Pose
+import socket
+import yaml
 import time
-from quaternion_utils import quaternion_to_axis_angle
+import os
+from ament_index_python.packages import get_package_share_directory
+from geometry_msgs.msg import Pose, Twist
+from std_msgs.msg import Bool
+from diagnostic_msgs.msg import DiagnosticStatus, KeyValue
+import logging
 
-class URVRSpeedControl(Node):
+class VRClient(Node):
+    """
+    ROS 2 node to receive VR controller data via TCP and publish to ROS topics.
+    """
     def __init__(self):
-        super().__init__('ur_vr_speed_control')
-
-        # Declare parameters
-        self.declare_parameter('robot_ip', '192.168.20.35')
-        self.declare_parameter('max_speed', 0.3)  # 20% of UR3e's max speed
-        self.declare_parameter('acceleration', 0.05)
-
-        self.robot_ip = self.get_parameter('robot_ip').get_parameter_value().string_value
-        self.max_speed = self.get_parameter('max_speed').get_parameter_value().double_value
-        self.acceleration = self.get_parameter('acceleration').get_parameter_value().double_value
-
-        # Setup TCP connection
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        try:
-            self.socket.connect((self.robot_ip, 30002))
-            self.get_logger().info(f"✅ Connected to UR3e at {self.robot_ip}")
-        except Exception as e:
-            self.get_logger().error(f"❌ Could not connect to UR3e: {e}")
-            rclpy.shutdown()
-            return
-
-        # Subscribe to VR controller pose topic
-        self.subscription = self.create_subscription(
-            Pose,
-            'vr_controller/pose',
-            self.listener_callback,
-            10
+        super().__init__('vr_client_node')
+        self.logger = logging.getLogger(__name__)
+        
+        # Load configuration
+        config_file = os.path.join(
+            get_package_share_directory('ur_vr_control'),
+            'config',
+            'config.yaml'
         )
-
+        try:
+            with open(config_file, "r") as f:
+                self.config = yaml.safe_load(f)
+        except FileNotFoundError as e:
+            self.get_logger().error(f"❌ Config file not found: {config_file}")
+            raise e
+        
+        self.server_ip = self.config["vr_client"]["server_ip"]
+        self.server_port = self.config["vr_client"]["server_port"]
+        self.reconnect_interval = self.config["vr_client"]["reconnect_interval"]
+        self.socket_timeout = self.config["vr_client"]["socket_timeout"]
+        self.pose_alpha = self.config["smoothing"]["pose_alpha"]
+        self.velocity_scale = self.config["vr_client"].get("velocity_scale", 0.001)  # Default: scale down by 1000
+        
+        # Workspace limits
+        self.limits = self.config["robot_control"]["workspace_limits"]
+        
+        # Create publishers
+        self.pose_pub = self.create_publisher(Pose, 'vr_controller/pose', 10)
+        self.velocity_pub = self.create_publisher(Twist, 'vr_controller/velocity', 10)
+        self.gripper_pub = self.create_publisher(Bool, 'vr_controller/gripper', 10)
+        self.diag_pub = self.create_publisher(DiagnosticStatus, 'diagnostics', 10)
+        
+        # Initialize socket and state
+        self.client_socket = None
         self.last_pose = None
         self.last_time = None
-
-    def listener_callback(self, msg):
-        now = time.time()
-        if self.last_pose is not None and self.last_time is not None:
-            dt = now - self.last_time
-            if dt == 0:
-                return
-
-            # Linear velocities
-            vx = (msg.position.x - self.last_pose.position.x) / dt
-            vy = (msg.position.y - self.last_pose.position.y) / dt
-            vz = (msg.position.z - self.last_pose.position.z) / dt
-
-            # Orientation (convert quaternion to axis-angle)
-            rx, ry, rz = quaternion_to_axis_angle(
-                msg.orientation.x, msg.orientation.y,
-                msg.orientation.z, msg.orientation.w
-            )
-
-            # URScript speedl command
-            script = (
-                f"speedl([{vx:.5f},{vy:.5f},{vz:.5f},{rx:.5f},{ry:.5f},{rz:.5f}], "
-                f"{self.max_speed}, {self.acceleration})\n"
-            )
-
+        self.last_position = None
+        
+        # Start diagnostics timer
+        self.create_timer(self.config["diagnostics"]["publish_rate"], self.publish_diagnostics)
+        
+        # Start client
+        self.run_client()
+    
+    def connect_socket(self):
+        """Establish TCP connection to VR server."""
+        self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.client_socket.settimeout(self.socket_timeout)
+        try:
+            self.client_socket.connect((self.server_ip, self.server_port))
+            self.get_logger().info(f'✅ Connected to server at {self.server_ip}:{self.server_port}')
+            return True
+        except Exception as e:
+            self.get_logger().error(f'❌ Failed to connect to server: {e}')
+            return False
+    
+    def validate_pose(self, x, y, z):
+        """Check if position is within workspace limits."""
+        return (self.limits["x_min"] <= x <= self.limits["x_max"] and
+                self.limits["y_min"] <= y <= self.limits["y_max"] and
+                self.limits["z_min"] <= z <= self.limits["z_max"])
+    
+    def smooth_pose(self, new_pose):
+        """Apply exponential moving average to smooth pose data."""
+        if self.last_pose is None:
+            self.last_pose = new_pose
+            return new_pose
+        
+        smoothed_pose = Pose()
+        alpha = self.pose_alpha
+        smoothed_pose.position.x = alpha * new_pose.position.x + (1 - alpha) * self.last_pose.position.x
+        smoothed_pose.position.y = alpha * new_pose.position.y + (1 - alpha) * self.last_pose.position.y
+        smoothed_pose.position.z = alpha * new_pose.position.z + (1 - alpha) * self.last_pose.position.z
+        smoothed_pose.orientation = new_pose.orientation
+        self.last_pose = smoothed_pose
+        return smoothed_pose
+    
+    def compute_velocity(self, new_pose, current_time):
+        """Compute velocity from pose changes."""
+        if self.last_position is None or self.last_time is None:
+            self.last_position = [new_pose.position.x, new_pose.position.y, new_pose.position.z]
+            self.last_time = current_time
+            return None
+        
+        dt = current_time - self.last_time
+        if dt < 1e-6:  # Avoid division by zero
+            return None
+        
+        velocity = Twist()
+        velocity.linear.x = (new_pose.position.x - self.last_position[0]) / dt * self.velocity_scale
+        velocity.linear.y = (new_pose.position.y - self.last_position[1]) / dt * self.velocity_scale
+        velocity.linear.z = (new_pose.position.z - self.last_position[2]) / dt * self.velocity_scale
+        # Angular velocity not computed for simplicity
+        velocity.angular.x = 0.0
+        velocity.angular.y = 0.0
+        velocity.angular.z = 0.0
+        
+        self.last_position = [new_pose.position.x, new_pose.position.y, new_pose.position.z]
+        self.last_time = current_time
+        return velocity
+    
+    def run_client(self):
+        """Main loop to receive and process VR data."""
+        buffer = ""
+        while rclpy.ok():
+            if self.client_socket is None:
+                if not self.connect_socket():
+                    time.sleep(self.reconnect_interval)
+                    continue
+            
             try:
-                self.socket.send(script.encode('utf-8'))
+                data = self.client_socket.recv(1024)
+                if not data:
+                    self.get_logger().warn('⚠️ No data received. Reconnecting...')
+                    self.client_socket.close()
+                    self.client_socket = None
+                    continue
+                
+                buffer += data.decode()
+                
+                while '\n' in buffer:
+                    line, buffer = buffer.split('\n', 1)
+                    line = line.strip()
+                    if not line:
+                        continue
+                    
+                    # Validate data format
+                    values = line.split(',')
+                    if len(values) != 9:
+                        self.get_logger().warn(f'⚠️ Invalid data: {line}')
+                        continue
+                    
+                    self.get_logger().info(f'📨 Received: {line}')
+                    
+                    # Process pose
+                    try:
+                        x, y, z, qx, qy, qz, qw = map(float, values[:7])
+                        if not self.validate_pose(x, y, z):
+                            self.get_logger().warn(f'⚠️ Pose out of workspace: x={x}, y={y}, z={z}')
+                            continue
+                        
+                        pose_msg = Pose()
+                        pose_msg.position.x = x
+                        pose_msg.position.y = y
+                        pose_msg.position.z = z
+                        pose_msg.orientation.x = qx
+                        pose_msg.orientation.y = qy
+                        pose_msg.orientation.z = qz
+                        pose_msg.orientation.w = qw
+                        
+                        # Smooth pose
+                        pose_msg = self.smooth_pose(pose_msg)
+                        
+                        self.pose_pub.publish(pose_msg)
+                        self.get_logger().info(f'📤 Published pose: {pose_msg}')
+                        
+                        # Compute and publish velocity
+                        current_time = time.time()
+                        velocity_msg = self.compute_velocity(pose_msg, current_time)
+                        if velocity_msg:
+                            self.velocity_pub.publish(velocity_msg)
+                            self.get_logger().info(f'📤 Published velocity: {velocity_msg}')
+                    
+                    except ValueError as e:
+                        self.get_logger().warn(f'⚠️ Error parsing pose: {e}')
+                        continue
+                    
+                    # Process gripper
+                    try:
+                        gripper_state = bool(int(values[8]))
+                        gripper_msg = Bool()
+                        gripper_msg.data = gripper_state
+                        self.gripper_pub.publish(gripper_msg)
+                        self.get_logger().info(f'📤 Published gripper: {gripper_msg.data}')
+                    
+                    except ValueError as e:
+                        self.get_logger().warn(f'⚠️ Error parsing gripper: {e}')
+                        continue
+            
+            except socket.timeout:
+                self.get_logger().warn('⚠️ Socket timeout. Reconnecting...')
+                self.client_socket.close()
+                self.client_socket = None
+                continue
             except Exception as e:
-                self.get_logger().error(f"Failed to send data: {e}")
-
-        self.last_pose = msg
-        self.last_time = now
-
+                self.get_logger().error(f'❌ Error receiving data: {e}')
+                self.client_socket.close()
+                self.client_socket = None
+                continue
+    
+    def publish_diagnostics(self):
+        """Publish diagnostic information."""
+        status = DiagnosticStatus()
+        status.name = "VR Client"
+        status.hardware_id = f"{self.server_ip}:{self.server_port}"
+        status.level = DiagnosticStatus.OK if self.client_socket else DiagnosticStatus.ERROR
+        status.message = "Connected" if self.client_socket else "Disconnected"
+        status.values.append(KeyValue(key="Server IP", value=self.server_ip))
+        status.values.append(KeyValue(key="Server Port", value=str(self.server_port)))
+        self.diag_pub.publish(status)
+    
     def destroy_node(self):
-        # Close socket before shutting down node
-        self.socket.close()
-        self.get_logger().info("❎ Disconnected from UR3e")
+        """Clean shutdown."""
+        if self.client_socket:
+            self.client_socket.close()
         super().destroy_node()
 
 def main(args=None):
     rclpy.init(args=args)
-    node = URVRSpeedControl()
+    node = VRClient()
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:

@@ -1,0 +1,36 @@
+{
+    "python.autoComplete.extraPaths": [
+        "/home/luke/Ros2_Directory/isaac_diff_ws/install/isaac_diff_control/local/lib/python3.10/dist-packages",
+        "/home/luke/Ros2_Directory/fibo_mobile_cobot_ws/install/realsense2_camera_msgs/local/lib/python3.10/dist-packages",
+        "/home/luke/Ros2_Directory/fibo_mobile_cobot_ws/install/open_manipulator_msgs/local/lib/python3.10/dist-packages",
+        "/home/luke/Ros2_Directory/fibo_mobile_cobot_ws/install/micro_ros_msgs/local/lib/python3.10/dist-packages",
+        "/home/luke/Ros2_Directory/fibo_mobile_cobot_ws/install/fibo_mmcb_control/local/lib/python3.10/dist-packages",
+        "/home/luke/Ros2_Directory/fibo_mobile_cobot_ws/install/dynamixel_sdk_custom_interfaces/local/lib/python3.10/dist-packages",
+        "/home/luke/Ros2_Directory/orchid_ws/build/nav2_gps_waypoint_follower_demo",
+        "/home/luke/Ros2_Directory/orchid_ws/install/nav2_gps_waypoint_follower_demo/lib/python3.10/site-packages",
+        "/home/luke/Ros2_Directory/microros_ws/install/micro_ros_msgs/local/lib/python3.10/dist-packages",
+        "/home/luke/Ros2_Directory/zm_robot_ws/build/zm_robot_teleop",
+        "/home/luke/Ros2_Directory/zm_robot_ws/install/zm_robot_teleop/lib/python3.10/site-packages",
+        "/home/luke/Ros2_Directory/zm_robot_ws/build/zm_robot_programing",
+        "/home/luke/Ros2_Directory/zm_robot_ws/install/zm_robot_programing/lib/python3.10/site-packages",
+        "/opt/ros/humble/lib/python3.10/site-packages",
+        "/opt/ros/humble/local/lib/python3.10/dist-packages"
+    ],
+    "python.analysis.extraPaths": [
+        "/home/luke/Ros2_Directory/isaac_diff_ws/install/isaac_diff_control/local/lib/python3.10/dist-packages",
+        "/home/luke/Ros2_Directory/fibo_mobile_cobot_ws/install/realsense2_camera_msgs/local/lib/python3.10/dist-packages",
+        "/home/luke/Ros2_Directory/fibo_mobile_cobot_ws/install/open_manipulator_msgs/local/lib/python3.10/dist-packages",
+        "/home/luke/Ros2_Directory/fibo_mobile_cobot_ws/install/micro_ros_msgs/local/lib/python3.10/dist-packages",
+        "/home/luke/Ros2_Directory/fibo_mobile_cobot_ws/install/fibo_mmcb_control/local/lib/python3.10/dist-packages",
+        "/home/luke/Ros2_Directory/fibo_mobile_cobot_ws/install/dynamixel_sdk_custom_interfaces/local/lib/python3.10/dist-packages",
+        "/home/luke/Ros2_Directory/orchid_ws/build/nav2_gps_waypoint_follower_demo",
+        "/home/luke/Ros2_Directory/orchid_ws/install/nav2_gps_waypoint_follower_demo/lib/python3.10/site-packages",
+        "/home/luke/Ros2_Directory/microros_ws/install/micro_ros_msgs/local/lib/python3.10/dist-packages",
+        "/home/luke/Ros2_Directory/zm_robot_ws/build/zm_robot_teleop",
+        "/home/luke/Ros2_Directory/zm_robot_ws/install/zm_robot_teleop/lib/python3.10/site-packages",
+        "/home/luke/Ros2_Directory/zm_robot_ws/build/zm_robot_programing",
+        "/home/luke/Ros2_Directory/zm_robot_ws/install/zm_robot_programing/lib/python3.10/site-packages",
+        "/opt/ros/humble/lib/python3.10/site-packages",
+        "/opt/ros/humble/local/lib/python3.10/dist-packages"
+    ]
+}

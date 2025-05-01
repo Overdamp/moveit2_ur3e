@@ -1,14 +1,41 @@
-#!/usr/bin/env python3
 import math
 
-def quaternion_to_axis_angle(qx, qy, qz, qw):
-    # คำนวณ theta และ axis-angle
-    theta = 2.0 * math.acos(qw)
-    sin_half_theta = math.sqrt(1 - qw*qw)
-    if sin_half_theta < 0.001:
-        return (0.0, 0.0, 0.0)  # แทน angular velocity เป็นศูนย์
-    else:
-        ax = qx / sin_half_theta * theta
-        ay = qy / sin_half_theta * theta
-        az = qz / sin_half_theta * theta
-        return (ax, ay, az)
+def quaternion_to_axis_angle(x, y, z, w):
+    """Convert quaternion to axis-angle representation."""
+    # Compute norm
+    norm = math.sqrt(x**2 + y**2 + z**2 + w**2)
+    
+    # Normalize quaternion if norm is not 1.0
+    if abs(norm - 1.0) > 1e-4:
+        if norm < 1e-6:
+            raise ValueError("Quaternion norm is too small")
+        x /= norm
+        y /= norm
+        z /= norm
+        w /= norm
+        norm = 1.0
+    
+    # Convert to axis-angle
+    angle = 2 * math.acos(w)
+    if abs(angle) < 1e-6:
+        return 0.0, 0.0, 0.0
+    
+    s = math.sqrt(1 - w**2)
+    if s < 1e-6:
+        return 0.0, 0.0, 0.0
+    
+    rx = x/s * angle
+    ry = y/s * angle
+    rz = z/s * angle
+    
+    # Check for invalid values
+    if not all(math.isfinite(v) for v in [rx, ry, rz]):
+        raise ValueError(f"Invalid axis-angle values: rx={rx}, ry={ry}, rz={rz}")
+    
+    # Clamp axis-angle to ±π
+    max_angle = math.pi
+    rx = max(-max_angle, min(max_angle, rx))
+    ry = max(-max_angle, min(max_angle, ry))
+    rz = max(-max_angle, min(max_angle, rz))
+    
+    return rx, ry, rz
