@@ -3,4 +3,10 @@
 	url = https://github.com/Overdamp/manipulator_vr_teleop.git
 [submodule "external/my-submodule"]
 	path = external/my-submodule
-	url = https://github.com/Overdamp/manipulator_vr_teleop.git
+	url = https://github.com/yourusername/forked-repo.git
+[submodule "external/UR10_Teleop"]
+	path = external/UR10_Teleop
+	url = https://github.com/elpis-lab/UR10_Teleop.git
+[submodule "external/RTDE"]
+	path = external/RTDE
+	url = https://github.com/Overdamp/RTDE_Python_Client_Library.git

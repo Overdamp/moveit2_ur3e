@@ -29,6 +29,9 @@ install(PROGRAMS
   scripts/b_servoj_control.py
   scripts/b_speedl_control.py
   scripts/b_quaternion_utils.py
+
+  scripts/read_ur3e_pose.py
+  scripts/urvr_moveit_control.py
 DESTINATION lib/${PROJECT_NAME}
 )
 

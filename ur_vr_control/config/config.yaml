@@ -1,5 +1,5 @@
 vr_client:
-  server_ip: "10.9.164.219"
+  server_ip: "10.9.164.173"
   server_port: 5555
   reconnect_interval: 5.0
   socket_timeout: 10.0
@@ -13,8 +13,8 @@ robot_control:
     x_max: 0.5
     y_min: -0.5
     y_max: 0.5
-    z_min: 1.2
-    z_max: 2.2
+    z_min: 0.5
+    z_max: 1.5
   max_velocity: 0.5
 servoj:
   time: 1.2

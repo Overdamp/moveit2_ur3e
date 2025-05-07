@@ -1,0 +1,5 @@
+vr_client:
+  vr_server_ip: "10.9.164.173"
+  vr_server_port: 5555
+  reconnect_interval: 5.0
+  socket_timeout: 5.0

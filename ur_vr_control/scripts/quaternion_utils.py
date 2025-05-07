@@ -1,41 +1,45 @@
 import math
 
+def quaternion_multiply(q1, q0):
+    """Multiply two quaternions."""
+    x0, y0, z0, w0 = q0
+    x1, y1, z1, w1 = q1
+    return [
+        w1*x0 + x1*w0 + y1*z0 - z1*y0,
+        w1*y0 - x1*z0 + y1*w0 + z1*x0,
+        w1*z0 + x1*y0 - y1*x0 + z1*w0,
+        w1*w0 - x1*x0 - y1*y0 - z1*z0
+    ]
+
+def quaternion_inverse(q):
+    """Compute the inverse of a quaternion."""
+    x, y, z, w = q
+    norm_sq = x*x + y*y + z*z + w*w
+    if norm_sq == 0:
+        raise ValueError("Cannot invert zero quaternion")
+    return [-x/norm_sq, -y/norm_sq, -z/norm_sq, w/norm_sq]
+
 def quaternion_to_axis_angle(x, y, z, w):
     """Convert quaternion to axis-angle representation."""
-    # Compute norm
-    norm = math.sqrt(x**2 + y**2 + z**2 + w**2)
-    
-    # Normalize quaternion if norm is not 1.0
-    if abs(norm - 1.0) > 1e-4:
-        if norm < 1e-6:
-            raise ValueError("Quaternion norm is too small")
-        x /= norm
-        y /= norm
-        z /= norm
-        w /= norm
-        norm = 1.0
-    
-    # Convert to axis-angle
-    angle = 2 * math.acos(w)
+    norm = math.sqrt(x*x + y*y + z*z)
+    if norm < 1e-6:
+        return 0.0, 0.0, 0.0
+    angle = 2.0 * math.acos(w)
     if abs(angle) < 1e-6:
         return 0.0, 0.0, 0.0
-    
-    s = math.sqrt(1 - w**2)
-    if s < 1e-6:
+    s = math.sin(angle / 2.0)
+    if abs(s) < 1e-6:
         return 0.0, 0.0, 0.0
-    
-    rx = x/s * angle
-    ry = y/s * angle
-    rz = z/s * angle
-    
-    # Check for invalid values
-    if not all(math.isfinite(v) for v in [rx, ry, rz]):
-        raise ValueError(f"Invalid axis-angle values: rx={rx}, ry={ry}, rz={rz}")
-    
-    # Clamp axis-angle to ±π
-    max_angle = math.pi
-    rx = max(-max_angle, min(max_angle, rx))
-    ry = max(-max_angle, min(max_angle, ry))
-    rz = max(-max_angle, min(max_angle, rz))
-    
-    return rx, ry, rz
+    return (x / s) * angle, (y / s) * angle, (z / s) * angle
+
+def axis_angle_to_quaternion(rx, ry, rz):
+    """Convert axis-angle to quaternion."""
+    angle = math.sqrt(rx*rx + ry*ry + rz*rz)
+    if angle < 1e-6:
+        return 0.0, 0.0, 0.0, 1.0
+    s = math.sin(angle / 2.0) / angle
+    w = math.cos(angle / 2.0)
+    x = rx * s
+    y = ry * s
+    z = rz * s
+    return x, y, z, w
