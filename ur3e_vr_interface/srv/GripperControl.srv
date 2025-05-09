@@ -1,0 +1,7 @@
+# GripperControl.srv
+float32 force   # Force level (0-255)
+float32 speed   # Speed level (0-255)
+float32 position # Position (0 for open, 255 for close)
+---
+bool success    # True if command executed successfully
+string message  # Error message if any
