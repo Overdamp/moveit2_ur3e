@@ -52,7 +52,7 @@ class VRToServoNode(Node):
         self.last_move_enable_time = 0.0
         self.prev_linear_velocity = np.zeros(3)
         self.prev_angular_velocity = np.zeros(3)
-        self.filter_alpha = 0.1
+        self.filter_alpha = 0.3
 
         self.get_logger().info('VRToServoNode initialized')
 
