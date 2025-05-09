@@ -1,195 +1,231 @@
 #!/usr/bin/env python3
 import rclpy
 from rclpy.node import Node
-from geometry_msgs.msg import Pose, TwistStamped, Vector3
-from std_msgs.msg import Bool, Header
-import yaml
-import os
-from ament_index_python.packages import get_package_share_directory
-from utils import quat_multiply, quat_conjugate  # จาก utils.py เดิม
+from geometry_msgs.msg import Pose, TwistStamped
+from sensor_msgs.msg import JointState
+from std_msgs.msg import Bool
 import numpy as np
+import time
+from rclpy.time import Time
+from quaternion_utils import quaternion_multiply, quaternion_inverse
 
-class URVRMoveItServoControl(Node):
-    """ROS 2 node to control UR3e robot using relative VR controller data with MoveIt Servo."""
-
+class VRToServoNode(Node):
     def __init__(self):
-        super().__init__('ur_vr_moveit_servo_control')
+        super().__init__('vr_to_servo_node')
 
-        # Load configuration from ur3e_config.yaml
-        try:
-            config_path = os.path.join(
-                get_package_share_directory('ur_vr_control'),
-                'config',
-                'ur3e_config.yaml'
-            )
-            with open(config_path, 'r') as f:
-                self.config = yaml.safe_load(f)
-            
-            if self.config is None:
-                raise ValueError("Failed to load ur3e_config.yaml: File is empty or malformed")
-        
-        except FileNotFoundError:
-            self.get_logger().error(f"❌ ur3e_config.yaml not found at {config_path}")
-            raise
-        except Exception as e:
-            self.get_logger().error(f"❌ Failed to load ur3e_config.yaml: {e}")
-            raise
+        # Declare parameters
+        self.declare_parameter('publish_period', 0.004)
+        self.declare_parameter('linear_scale', 0.5)
+        self.declare_parameter('angular_scale', 0.5)
+        self.declare_parameter('frame_id', 'tool0')
+        self.declare_parameter('joint_names', [
+            "shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint",
+            "wrist_1_joint", "wrist_2_joint", "wrist_3_joint"])
 
-        # Robot workspace limits and scaling
-        self.robot_limits = self.config["robot_control"]["workspace_limits"]
-        self.vr_workspace = {'x_min': -1.0, 'x_max': 1.0, 'y_min': -1.0, 'y_max': 1.0, 'z_min': -1.0, 'z_max': 1.0}
-        self.scale_x = (self.robot_limits["x_max"] - self.robot_limits["x_min"]) / (self.vr_workspace["x_max"] - self.vr_workspace["x_min"])
-        self.scale_y = (self.robot_limits["y_max"] - self.robot_limits["y_min"]) / (self.vr_workspace["y_max"] - self.vr_workspace["y_min"])
-        self.scale_z = (self.robot_limits["z_max"] - self.robot_limits["z_min"]) / (self.vr_workspace["z_max"] - self.vr_workspace["z_min"])
-        
-        self.get_logger().info(f'🛠️ Position mapping: scale=[{self.scale_x:.3f}, {self.scale_y:.3f}, {self.scale_z:.3f}]')
+        # Get parameters
+        self.publish_period = self.get_parameter('publish_period').value
+        self.linear_scale = self.get_parameter('linear_scale').value
+        self.angular_scale = self.get_parameter('angular_scale').value
+        self.frame_id = self.get_parameter('frame_id').value
+        self.joint_names = self.get_parameter('joint_names').value
 
-        # MoveIt Servo parameters
-        self.max_linear_speed = self.config["robot_control"].get("max_speed", 0.1)  # m/s
-        self.max_angular_speed = self.config["robot_control"].get("max_angular_speed", 0.5)  # rad/s
-        self.max_delta = 0.05  # Maximum allowed position delta per update (m)
+        # Subscribers
+        self.pose_sub = self.create_subscription(
+            Pose, '/vr_controller/pose', self.pose_callback, 10)
+        self.move_enable_sub = self.create_subscription(
+            Bool, '/vr_controller/move_enable', self.move_enable_callback, 10)
+        self.joint_state_sub = self.create_subscription(
+            JointState, '/joint_states', self.joint_state_callback, 10)
 
-        # Publishers and Subscribers
-        self.twist_pub = self.create_publisher(TwistStamped, '/servo_node/delta_twist_cmds', 10)
-        self.create_subscription(Pose, 'vr_controller/pose', self.pose_callback, 10)
-        self.create_subscription(Bool, 'vr_controller/move_enable', self.motion_enable_callback, 10)
+        # Publishers
+        self.servo_twist_pub = self.create_publisher(
+            TwistStamped, '/servo_node/delta_twist_cmds', 10)
+        self.servo_joint_pub = self.create_publisher(
+            JointState, '/servo_node/delta_joint_cmds', 10)
 
         # State variables
-        self.motion_enabled = False
-        self.vr_prev_pose = None
-        self.last_motion_enable_time = 0.0
-        self.last_sent_twist = None
+        self.prev_position = None
+        self.prev_orientation = None
+        self.prev_time = None
+        self.move_enable = False
+        self.current_joint_state = None
+        self.last_move_enable_time = 0.0
+        self.prev_linear_velocity = np.zeros(3)
+        self.prev_angular_velocity = np.zeros(3)
+        self.filter_alpha = 0.1
 
-    def validate_twist(self, linear, angular):
-        """Check if twist command is within safe limits."""
-        valid = (
-            abs(linear.x) <= self.max_linear_speed and
-            abs(linear.y) <= self.max_linear_speed and
-            abs(linear.z) <= self.max_linear_speed and
-            abs(angular.x) <= self.max_angular_speed and
-            abs(angular.y) <= self.max_angular_speed and
-            abs(angular.z) <= self.max_angular_speed
-        )
-        if not valid:
-            self.get_logger().warn(f'⚠️ Twist command exceeds limits: linear=[{linear.x:.3f}, {linear.y:.3f}, {linear.z:.3f}], '
-                                  f'angular=[{angular.x:.3f}, {angular.y:.3f}, {angular.z:.3f}]')
-        return valid
+        self.get_logger().info('VRToServoNode initialized')
 
-    def smooth_twist(self, new_linear, new_angular):
-        """Apply exponential moving average to smooth twist commands."""
-        if self.last_sent_twist is None:
-            self.last_sent_twist = [new_linear.x, new_linear.y, new_linear.z, new_angular.x, new_angular.y, new_angular.z]
-            return new_linear, new_angular
-        
-        alpha = 0.1
-        smoothed_linear = Vector3()
-        smoothed_angular = Vector3()
-        smoothed_linear.x = alpha * new_linear.x + (1 - alpha) * self.last_sent_twist[0]
-        smoothed_linear.y = alpha * new_linear.y + (1 - alpha) * self.last_sent_twist[1]
-        smoothed_linear.z = alpha * new_linear.z + (1 - alpha) * self.last_sent_twist[2]
-        smoothed_angular.x = alpha * new_angular.x + (1 - alpha) * self.last_sent_twist[3]
-        smoothed_angular.y = alpha * new_angular.y + (1 - alpha) * self.last_sent_twist[4]
-        smoothed_angular.z = alpha * new_angular.z + (1 - alpha) * self.last_sent_twist[5]
-        self.last_sent_twist = [smoothed_linear.x, smoothed_linear.y, smoothed_linear.z,
-                               smoothed_angular.x, smoothed_angular.y, smoothed_angular.z]
-        return smoothed_linear, smoothed_angular
+    def joint_state_callback(self, msg: JointState):
+        self.current_joint_state = msg
+        self.get_logger().debug(f'Received joint state: {msg.name}')
 
-    def pose_callback(self, msg):
-        """Process relative VR controller pose and send TwistStamped to MoveIt Servo."""
-        if not self.motion_enabled:
-            self.get_logger().debug("🔒 Motion disabled, skipping pose processing.")
+    def move_enable_callback(self, msg: Bool):
+        current_time = time.time()
+        if current_time - self.last_move_enable_time < 0.5:
             return
-        if self.vr_prev_pose is None:
-            self.vr_prev_pose = msg
-            self.get_logger().info("📍 Initial VR pose set for delta calculation.")
-            return
-
-        # Calculate position delta (relative movement)
-        delta_x = self.scale_x * msg.position.x
-        delta_y = self.scale_y * msg.position.y
-        delta_z = self.scale_z * msg.position.z
-
-        # Limit position delta for safety
-        if abs(delta_x) > self.max_delta or abs(delta_y) > self.max_delta or abs(delta_z) > self.max_delta:
-            self.get_logger().warn(f'⚠️ Position delta too large: dx={delta_x:.3f}, dy={delta_y:.3f}, dz={delta_z:.3f}')
-            self.vr_prev_pose = msg
-            return
-
-        # Calculate orientation delta
-        q_vr_current = [msg.orientation.x, msg.orientation.y, msg.orientation.z, msg.orientation.w]
-        q_vr_prev = [self.vr_prev_pose.orientation.x, self.vr_prev_pose.orientation.y,
-                     self.vr_prev_pose.orientation.z, self.vr_prev_pose.orientation.w]
-        
-        try:
-            # Compute relative rotation (delta quaternion)
-            q_delta = quat_multiply(q_vr_current, quat_conjugate(q_vr_prev))
-            # Convert quaternion to angular velocity (approximation)
-            # For small rotations, q_delta ≈ [wx*dt/2, wy*dt/2, wz*dt/2, 1]
-            dt = 0.1  # Assume 10 Hz update rate
-            angular_vel = np.array([q_delta[0], q_delta[1], q_delta[2]]) * 2.0 / dt
-        except Exception as e:
-            self.get_logger().error(f'❌ Failed to process quaternion: {e}')
-            self.vr_prev_pose = msg
-            return
-
-        # Create TwistStamped message
-        twist_msg = TwistStamped()
-        twist_msg.header = Header(stamp=self.get_clock().now().to_msg(), frame_id='base_link')
-        twist_msg.twist.linear.x = delta_x / dt  # Convert to velocity (m/s)
-        twist_msg.twist.linear.y = delta_y / dt
-        twist_msg.twist.linear.z = delta_z / dt
-        twist_msg.twist.angular.x = angular_vel[0]
-        twist_msg.twist.angular.y = angular_vel[1]
-        twist_msg.twist.angular.z = angular_vel[2]
-
-        # Smooth twist command
-        smoothed_linear = Vector3(x=twist_msg.twist.linear.x, y=twist_msg.twist.linear.y, z=twist_msg.twist.linear.z)
-        smoothed_angular = Vector3(x=twist_msg.twist.angular.x, y=twist_msg.twist.angular.y, z=twist_msg.twist.angular.z)
-        smoothed_linear, smoothed_angular = self.smooth_twist(smoothed_linear, smoothed_angular)
-        twist_msg.twist.linear = smoothed_linear
-        twist_msg.twist.angular = smoothed_angular
-
-        # Validate twist command
-        if not self.validate_twist(twist_msg.twist.linear, twist_msg.twist.angular):
-            self.vr_prev_pose = msg
-            return
-
-        # Publish twist command
-        self.twist_pub.publish(twist_msg)
-        self.get_logger().info(f'🚀 Sent TwistStamped: linear=[{twist_msg.twist.linear.x:.3f}, {twist_msg.twist.linear.y:.3f}, {twist_msg.twist.linear.z:.3f}], '
-                              f'angular=[{twist_msg.twist.angular.x:.3f}, {twist_msg.twist.angular.y:.3f}, {twist_msg.twist.angular.z:.3f}]')
-        self.vr_prev_pose = msg
-
-    def motion_enable_callback(self, msg):
-        """Enable or disable motion based on VR controller button."""
-        current_time = self.get_clock().now().nanoseconds / 1e9  # Convert to seconds
-        if current_time - self.last_motion_enable_time < 0.2:  # Debounce
-            return
-        
-        self.motion_enabled = msg.data
-        self.last_motion_enable_time = current_time
-        
-        if self.motion_enabled:
-            self.vr_prev_pose = None
-            self.last_sent_twist = None
-            self.get_logger().info('🔄 Motion enabled')
+        self.move_enable = msg.data
+        self.last_move_enable_time = current_time
+        if not self.move_enable:
+            self.prev_position = None
+            self.prev_orientation = None
+            self.prev_time = None
+            self.get_logger().info('Movement disabled')
+            twist_msg = TwistStamped()
+            twist_msg.header.stamp = self.get_clock().now().to_msg()
+            twist_msg.header.frame_id = self.frame_id
+            self.servo_twist_pub.publish(twist_msg)
+            joint_msg = JointState()
+            joint_msg.header.stamp = self.get_clock().now().to_msg()
+            joint_msg.name = self.joint_names
+            joint_msg.velocity = [0.0] * len(self.joint_names)
+            self.servo_joint_pub.publish(joint_msg)
         else:
-            self.get_logger().info('🔒 Motion disabled')
+            self.get_logger().info('Movement enabled')
+
+    def pose_callback(self, msg: Pose):
+        if not self.move_enable:
+            return
+
+        position = np.array([msg.position.x, msg.position.y, msg.position.z])
+        orientation = np.array([msg.orientation.x, msg.orientation.y, msg.orientation.z, msg.orientation.w])
+        orientation = orientation / np.linalg.norm(orientation)
+
+        current_time = self.get_clock().now()
+
+        twist_msg = TwistStamped()
+        joint_msg = JointState()
+        twist_msg.header.stamp = current_time.to_msg()
+        twist_msg.header.frame_id = self.frame_id
+        joint_msg.header.stamp = current_time.to_msg()
+        joint_msg.name = self.joint_names
+
+        if self.prev_position is None or self.prev_orientation is None or self.prev_time is None:
+            self.prev_position = position
+            self.prev_orientation = orientation
+            self.prev_time = current_time
+            self.get_logger().info('Initialized pose state')
+            return
+
+        dt = (current_time - self.prev_time).nanoseconds / 1e9
+        if dt <= 0:
+            self.get_logger().warn('Invalid time difference, skipping')
+            return
+
+        # Calculate linear and angular velocity
+        delta_pos = position - self.prev_position
+        linear_velocity = delta_pos / dt * self.linear_scale
+
+        q1 = self.prev_orientation
+        q2 = orientation
+        q1_inv = quaternion_inverse(q1)
+        q_diff = quaternion_multiply(q2, q1_inv)
+        angular_velocity = np.array([q_diff[0], q_diff[1], q_diff[2]]) * 2.0 / dt * self.angular_scale
+
+        # Apply low-pass filter
+        linear_velocity = (1 - self.filter_alpha) * self.prev_linear_velocity + self.filter_alpha * linear_velocity
+        angular_velocity = (1 - self.filter_alpha) * self.prev_angular_velocity + self.filter_alpha * angular_velocity
+        self.prev_linear_velocity = linear_velocity
+        self.prev_angular_velocity = angular_velocity
+
+        max_linear_vel = 1.0
+        max_angular_vel = 1.0
+        linear_velocity = np.clip(linear_velocity, -max_linear_vel, max_linear_vel)
+        angular_velocity = np.clip(angular_velocity, -max_angular_vel, max_angular_vel)
+
+        # Publish TwistStamped
+        twist_msg.twist.linear.x = float(linear_velocity[0])
+        twist_msg.twist.linear.y = float(linear_velocity[1])
+        twist_msg.twist.linear.z = float(linear_velocity[2])
+        twist_msg.twist.angular.x = float(angular_velocity[0])
+        twist_msg.twist.angular.y = float(angular_velocity[1])
+        twist_msg.twist.angular.z = float(angular_velocity[2])
+        self.servo_twist_pub.publish(twist_msg)
+        self.get_logger().info(f'Twist published: lx={twist_msg.twist.linear.x:.3f}, ax={twist_msg.twist.angular.x:.3f}')
+
+        # Calculate joint velocities
+        if self.current_joint_state is not None and len(self.current_joint_state.name) == len(self.joint_names):
+            try:
+                jacobian = self.compute_jacobian(self.current_joint_state)
+                twist = np.concatenate([linear_velocity, angular_velocity])
+                condition_number = np.linalg.cond(jacobian)
+                if condition_number > 1000:
+                    self.get_logger().warn(f'Jacobian near singularity, condition number: {condition_number}')
+                    self.get_logger().warn(f'Joint positions: {[self.current_joint_state.position[i] for i in range(len(self.current_joint_state.name))]}')
+                    joint_msg.velocity = [0.0] * len(self.joint_names)
+                else:
+                    joint_velocities = np.dot(np.linalg.pinv(jacobian), twist)
+                    joint_velocities = np.clip(joint_velocities, -1.0, 1.0)
+                    joint_msg.velocity = joint_velocities.tolist()
+                    self.servo_joint_pub.publish(joint_msg)
+                    self.get_logger().info(f'Joint velocities published: {joint_msg.velocity}')
+            except Exception as e:
+                self.get_logger().error(f'Failed to compute joint velocities: {e}')
+        else:
+            self.get_logger().warn('No valid joint state available, skipping joint command')
+
+        self.prev_position = position
+        self.prev_orientation = orientation
+        self.prev_time = current_time
+
+    def compute_jacobian(self, joint_state):
+        # UR3e DH parameters
+        d = [0.15185, 0.0, 0.0, 0.13105, 0.08535, 0.0921]
+        a = [0.0, -0.24355, -0.2132, 0.0, 0.0, 0.0]
+        alpha = [np.pi/2, 0.0, 0.0, np.pi/2, -np.pi/2, 0.0]
+
+        theta = np.array([joint_state.position[i] for i in range(len(joint_state.name))])
+        num_joints = len(theta)
+        if num_joints != 6:
+            self.get_logger().error(f'Invalid number of joints: expected 6, got {num_joints}')
+            return np.zeros((6, 6))
+
+        jacobian = np.zeros((6, num_joints))
+
+        # Compute transformation matrices
+        T = np.eye(4)
+        transforms = []
+        for i in range(num_joints):
+            ct = np.cos(theta[i])
+            st = np.sin(theta[i])
+            ca = np.cos(alpha[i])
+            sa = np.sin(alpha[i])
+            A = np.array([
+                [ct, -st*ca, st*sa, a[i]*ct],
+                [st, ct*ca, -ct*sa, a[i]*st],
+                [0, sa, ca, d[i]],
+                [0, 0, 0, 1]
+            ])
+            T = T @ A
+            transforms.append(T.copy())
+            self.get_logger().debug(f'Transform {i}: {T}')
+
+        # End-effector position
+        p_ee = transforms[-1][:3, 3]
+        self.get_logger().info(f'End-effector position: {p_ee}')
+
+        # Compute Jacobian
+        for i in range(num_joints):
+            z_i = transforms[i][:3, 2]
+            p_i = transforms[i][:3, 3]
+            jacobian[:3, i] = np.cross(z_i, p_ee - p_i)
+            jacobian[3:6, i] = z_i
+
+        condition_number = np.linalg.cond(jacobian)
+        self.get_logger().info(f'Jacobian condition number: {condition_number}')
+        return jacobian
 
     def destroy_node(self):
-        """Clean up resources on shutdown."""
-        self.get_logger().info('❎ Shutting down URVRMoveItServoControl node')
+        self.get_logger().info('Shutting down VRToServoNode')
         super().destroy_node()
 
 def main(args=None):
     rclpy.init(args=args)
-    node = URVRMoveItServoControl()
+    node = VRToServoNode()
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
-        node.get_logger().info('Node interrupted by user.')
-    except Exception as e:
-        node.get_logger().error(f'Unexpected error: {e}')
+        pass
     finally:
         node.destroy_node()
         rclpy.shutdown()

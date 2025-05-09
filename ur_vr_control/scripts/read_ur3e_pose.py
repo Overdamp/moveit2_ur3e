@@ -6,6 +6,7 @@ import yaml
 import time
 import os
 import re
+import struct
 from ament_index_python.packages import get_package_share_directory
 from quaternion_utils import axis_angle_to_quaternion
 
@@ -63,9 +64,32 @@ class UR3ePoseReader(Node):
             try:
                 while True:
                     data = self.socket.recv(1024)
-                    self.get_logger().debug(f'Cleared buffer data: {repr(data)}')
+                    self.get_logger().info(f'Cleared buffer data: {repr(data)}')
             except socket.timeout:
                 self.get_logger().info('Buffer cleared successfully')
+
+            # Unlock protective stop
+            self.get_logger().info('📡 Unlocking protective stop...')
+            self.socket.settimeout(self.socket_timeout)
+            self.send_urscript('unlock_protective_stop()\n')
+            time.sleep(1.0)
+
+            # Check robot status
+            self.get_logger().info('📡 Checking robot status...')
+            self.send_urscript('get_robot_status()\n')
+            time.sleep(1.0)
+            data = b''
+            self.socket.settimeout(2.0)
+            try:
+                while True:
+                    chunk = self.socket.recv(1024)
+                    if not chunk:
+                        break
+                    data += chunk
+            except socket.timeout:
+                pass
+            self.get_logger().info(f'Robot status: {data.decode("utf-8", errors="ignore")}')
+
             self.socket.settimeout(self.socket_timeout)
             return True
         except Exception as e:
@@ -88,60 +112,142 @@ class UR3ePoseReader(Node):
         """Send URScript command to UR3e."""
         try:
             self.socket.send(script.encode('utf-8'))
-            self.get_logger().debug(f'📤 Sent URScript: {script.strip()}')
+            self.get_logger().info(f'📤 Sent URScript: {script.strip()}')
         except Exception as e:
             self.get_logger().error(f'❌ Failed to send URScript: {e}')
             self.reconnect_socket()
 
-    def read_pose(self):
-        """Read and display the current pose of UR3e."""
+    def parse_rtde_packet(self, data):
+        """Parse RTDE packet to extract TCP pose."""
+        try:
+            # RTDE packet starts with a 2-byte length field
+            if len(data) < 8:
+                self.get_logger().warn('⚠️ Data too short to parse RTDE packet')
+                return None
+
+            # Parse packet length (first 2 bytes)
+            packet_length = struct.unpack('!H', data[:2])[0]
+            self.get_logger().info(f'RTDE packet length: {packet_length}')
+
+            # Check if we have the full packet
+            if len(data) < packet_length:
+                self.get_logger().warn(f'⚠️ Incomplete RTDE packet: expected {packet_length} bytes, got {len(data)} bytes')
+                return None
+
+            # Parse message type (byte 2)
+            message_type = data[2]
+            self.get_logger().info(f'RTDE message type: {message_type}')
+
+            # We are expecting a data message (type 16 for RTDE_DATA_PACKAGE)
+            if message_type != 16:
+                self.get_logger().warn(f'⚠️ Unexpected RTDE message type: {message_type}')
+                return None
+
+            # Parse the actual data (starting from byte 3)
+            offset = 3
+            # RTDE data package contains multiple variables; we need to parse until we find the TCP pose
+            # For simplicity, assume TCP pose (6 doubles: x, y, z, rx, ry, rz) is near the beginning
+            if len(data) < offset + 48:  # 6 doubles = 48 bytes
+                self.get_logger().warn('⚠️ RTDE packet too short to contain TCP pose')
+                return None
+
+            # Parse TCP pose (6 doubles: x, y, z, rx, ry, rz)
+            x, y, z, rx, ry, rz = struct.unpack('!dddddd', data[offset:offset+48])
+            return x, y, z, rx, ry, rz
+        except Exception as e:
+            self.get_logger().error(f'❌ Failed to parse RTDE packet: {e}')
+            return None
+
+    def read_pose(self, retries=3):
+        """Read and display the current pose of UR3e with retries."""
         if not self.socket:
             self.get_logger().error("❌ Socket not connected.")
             self.reconnect_socket()
             return
 
-        try:
-            self.get_logger().info('📍 Requesting current robot pose...')
-            self.send_urscript('get_actual_tcp_pose()\n')
-            self.socket.settimeout(5.0)
-
-            # Receive data
-            data = b''
-            start_time = time.time()
-            while time.time() - start_time < 5.0:
+        for attempt in range(retries):
+            try:
+                self.get_logger().info(f'📍 Requesting current robot pose (attempt {attempt + 1}/{retries})...')
+                
+                # Clear socket buffer before sending command
+                self.socket.settimeout(0.1)
                 try:
-                    chunk = self.socket.recv(1024)
-                    if not chunk:
-                        break
-                    data += chunk
+                    while True:
+                        data = self.socket.recv(1024)
+                        self.get_logger().info(f'Cleared buffer data before request: {repr(data)}')
                 except socket.timeout:
-                    break
+                    self.get_logger().info('Buffer cleared before sending request')
 
-            # Decode and parse data
-            decoded_data = data.decode('utf-8', errors='ignore')
-            self.get_logger().debug(f'Received pose data: {decoded_data}')
+                # Send command to get pose
+                self.send_urscript('get_actual_tcp_pose()\n')
+                self.socket.settimeout(10.0)  # เพิ่ม timeout เป็น 10 วินาที
 
-            # Parse pose data (format: [x, y, z, rx, ry, rz])
-            match = re.search(r'\[([-\d.]+),([-\d.]+),([-\d.]+),([-\d.]+),([-\d.]+),([-\d.]+)\]', decoded_data)
-            if match:
-                x, y, z = float(match.group(1)), float(match.group(2)), float(match.group(3))
-                rx, ry, rz = float(match.group(4)), float(match.group(5)), float(match.group(6))
+                # Receive data
+                data = b''
+                start_time = time.time()
+                while time.time() - start_time < 10.0:
+                    try:
+                        chunk = self.socket.recv(1024)
+                        if not chunk:
+                            break
+                        data += chunk
+                    except socket.timeout:
+                        break
 
-                # Convert axis-angle to quaternion
-                qx, qy, qz, qw = axis_angle_to_quaternion(rx, ry, rz)
+                # Log raw data for debugging
+                self.get_logger().info(f'Raw pose data (bytes): {repr(data)}')
+                self.get_logger().info(f'Raw pose data (hex): {data.hex()}')
+                
+                # Try parsing as URScript text first
+                decoded_data = data.decode('utf-8', errors='ignore')
+                self.get_logger().info(f'Decoded pose data: {decoded_data}')
 
-                # Display pose on terminal
-                self.get_logger().info(
-                    f'📍 Current UR3e Pose:\n'
-                    f'Position: x={x:.5f}, y={y:.5f}, z={z:.5f}\n'
-                    f'Orientation (quaternion): qx={qx:.5f}, qy={qy:.5f}, qz={qz:.5f}, qw={qw:.5f}\n'
-                    f'Orientation (axis-angle): rx={rx:.5f}, ry={ry:.5f}, rz={rz:.5f}'
-                )
-            else:
-                self.get_logger().error(f'❌ Failed to parse pose data: {decoded_data}')
-        except Exception as e:
-            self.get_logger().error(f'❌ Failed to read pose: {e}')
-            self.reconnect_socket()
+                match = re.search(r'\[([-\d.]+),([-\d.]+),([-\d.]+),([-\d.]+),([-\d.]+),([-\d.]+)\]', decoded_data)
+                if match:
+                    x, y, z = float(match.group(1)), float(match.group(2)), float(match.group(3))
+                    rx, ry, rz = float(match.group(4)), float(match.group(5)), float(match.group(6))
+
+                    # Convert axis-angle to quaternion
+                    qx, qy, qz, qw = axis_angle_to_quaternion(rx, ry, rz)
+
+                    # Display pose on terminal
+                    self.get_logger().info(
+                        f'📍 Current UR3e Pose (URScript):\n'
+                        f'Position: x={x:.5f}, y={y:.5f}, z={z:.5f}\n'
+                        f'Orientation (quaternion): qx={qx:.5f}, qy={qy:.5f}, qz={qz:.5f}, qw={qw:.5f}\n'
+                        f'Orientation (axis-angle): rx={rx:.5f}, ry={ry:.5f}, rz={rz:.5f}'
+                    )
+                    return
+                else:
+                    self.get_logger().warn('⚠️ Could not parse as URScript, trying RTDE packet...')
+
+                # Try parsing as RTDE packet
+                pose = self.parse_rtde_packet(data)
+                if pose:
+                    x, y, z, rx, ry, rz = pose
+                    qx, qy, qz, qw = axis_angle_to_quaternion(rx, ry, rz)
+                    self.get_logger().info(
+                        f'📍 Current UR3e Pose (RTDE):\n'
+                        f'Position: x={x:.5f}, y={y:.5f}, z={z:.5f}\n'
+                        f'Orientation (quaternion): qx={qx:.5f}, qy={qy:.5f}, qz={qz:.5f}, qw={qw:.5f}\n'
+                        f'Orientation (axis-angle): rx={rx:.5f}, ry={ry:.5f}, rz={rz:.5f}'
+                    )
+                    return
+                else:
+                    self.get_logger().error(f'❌ Failed to parse pose data: {decoded_data}')
+                    if attempt < retries - 1:
+                        self.get_logger().warn('⚠️ Retrying...')
+                        time.sleep(1.0)
+                    else:
+                        self.get_logger().error('❌ Failed to parse pose data after all retries.')
+            except Exception as e:
+                self.get_logger().error(f'❌ Failed to read pose: {e}')
+                if attempt < retries - 1:
+                    self.get_logger().warn('⚠️ Retrying...')
+                    time.sleep(1.0)
+                else:
+                    self.get_logger().error('❌ Failed to read pose after all retries.')
+                    self.reconnect_socket()
 
     def destroy_node(self):
         """Clean up resources on shutdown."""
