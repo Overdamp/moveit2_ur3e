@@ -36,6 +36,8 @@ install(PROGRAMS
 
   scripts/read_ur3e_pose.py
   scripts/urvr_moveit_control.py
+
+  scripts/camera_streamer.py
 DESTINATION lib/${PROJECT_NAME}
 )
 
