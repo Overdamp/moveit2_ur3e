@@ -2,183 +2,87 @@
 import os
 import socket
 import time
-import rclpy
-from rclpy.node import Node
-from std_srvs.srv import Empty
-from ament_index_python.packages import get_package_share_directory
-from custom_interfaces.srv import GripperControl  # Assuming custom_interfaces is the package for GripperControl.srv
+import ament_index_python.packages
 
-class GripperControlNode(Node):
-    """ROS 2 node to control Robotiq 2F-140 gripper via socket and handle service calls."""
+# Network configuration
+HOST = "192.168.20.36"  # UR3e IP in LAN
+PORT = 30002  # Socket port for UR-script
 
+# Get the path to the package's share directory
+package_share_directory = ament_index_python.packages.get_package_share_directory('robotiq_connect')
+
+# Build paths to UR-script files
+script_path1 = os.path.join(package_share_directory, 'scripts', 'gripper_activate.script')
+script_path2 = os.path.join(package_share_directory, 'scripts', 'gripper_close.script')
+script_path3 = os.path.join(package_share_directory, 'scripts', 'gripper_open.script')
+
+class GripperControl:
     def __init__(self):
-        super().__init__('gripper_control')
-        self.get_logger().info('Initializing GripperControlNode')
-
-        # Gripper connection parameters
-        self.host = "192.168.20.35"
-        self.port = 63352
-        self.script_port = 30002  # For sending URScript
-        self.socket_timeout = 2.0
-
-        # Load URScript files
-        package_share_directory = get_package_share_directory('robotiq_connect')
-        self.script_path_activate = os.path.join(package_share_directory, 'scripts', 'gripper_activate.script')
-        self.script_path_open = os.path.join(package_share_directory, 'scripts', 'gripper_open.script')
-        self.script_path_close = os.path.join(package_share_directory, 'scripts', 'gripper_close.script')
-
-        # Initialize socket
-        self.socket = None
-        self.script_socket = None
-        self.connect_socket()
-
-        # Service servers
-        self.activate_srv = self.create_service(Empty, 'gripper/activate', self.activate_gripper_callback)
-        self.open_srv = self.create_service(Empty, 'gripper/open', self.open_gripper_callback)
-        self.close_srv = self.create_service(Empty, 'gripper/close', self.close_gripper_callback)
-        self.control_srv = self.create_service(GripperControl, 'gripper/control', self.control_gripper_callback)
-
-    def connect_socket(self):
-        """Establish socket connections for gripper control and URScript."""
-        # Control socket (port 63352)
+        # Initialize socket connection
         try:
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.socket.settimeout(self.socket_timeout)
-            self.socket.connect((self.host, self.port))
-            self.get_logger().info(f'Connected to gripper at {self.host}:{self.port}')
-        except socket.error as e:
-            self.get_logger().error(f'Failed to connect to gripper: {e}')
-            self.socket = None
-
-        # Script socket (port 30002)
-        try:
-            self.script_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.script_socket.settimeout(self.socket_timeout)
-            self.script_socket.connect((self.host, self.script_port))
-            self.get_logger().info(f'Connected to script socket at {self.host}:{self.script_port}')
-        except socket.error as e:
-            self.get_logger().error(f'Failed to connect to script socket: {e}')
-            self.script_socket = None
-
-    def reconnect_socket(self):
-        """Reconnect to gripper if connection is lost."""
-        self.get_logger().warn('Attempting to reconnect to gripper...')
-        if self.socket:
-            try:
-                self.socket.close()
-            except:
-                pass
-        if self.script_socket:
-            try:
-                self.script_socket.close()
-            except:
-                pass
-        self.socket = None
-        self.script_socket = None
-        self.connect_socket()
-
-    def send_script(self, script_path, additional_commands=None):
-        """Send URScript to gripper via script socket."""
-        if not self.script_socket:
-            self.get_logger().error('Script socket not connected')
-            return False
-
-        try:
-            with open(script_path, 'rb') as f:
-                script_content = f.read()
-
-            if additional_commands:
-                script_content += bytes(additional_commands, 'utf-8')
-
-            self.script_socket.send(script_content)
-            time.sleep(1)  # Wait for script execution
-            return True
+            self.socket.connect((HOST, PORT))
+            print("Socket connected for gripper control")
+            self._activate_gripper()
         except Exception as e:
-            self.get_logger().error(f'Failed to send script: {e}')
-            self.reconnect_socket()
-            return False
+            print(f"Failed to connect socket for gripper: {e}")
+            raise
 
-    def activate_gripper_callback(self, request, response):
-        """Handle gripper activation service call."""
-        self.get_logger().info('Activating gripper')
-        success = self.send_script(self.script_path_activate)
-        if success:
-            self.get_logger().info('Gripper activated successfully')
-        else:
-            self.get_logger().error('Failed to activate gripper')
-        return response
+    def _activate_gripper(self):
+        """Activate gripper using UR-script"""
+        try:
+            with open(script_path1, "rb") as f:
+                script = f.read()
+                self.socket.send(script)
+            print("Gripper activated")
+            time.sleep(1)
+        except Exception as e:
+            print(f"Gripper activation failed: {e}")
 
-    def open_gripper_callback(self, request, response):
-        """Handle gripper open service call."""
-        self.get_logger().info('Opening gripper')
-        success = self.send_script(self.script_path_open)
-        if success:
-            self.get_logger().info('Gripper opened successfully')
-        else:
-            self.get_logger().error('Failed to open gripper')
-        return response
+    def close_gripper(self, force=50, speed=50, range=200):
+        """Close gripper with specified parameters"""
+        try:
+            with open(script_path2, "rb") as f:
+                script = f.read()
+                add = f"rq_set_force({force})\r\nrq_set_speed({speed})\r\nrq_move_and_wait({range})\r\nend\r\n"
+                send = script + bytes(add, 'utf-8')
+                self.socket.send(send)
+            print("Gripper closed")
+            time.sleep(0.5)
+        except Exception as e:
+            print(f"Gripper close failed: {e}")
 
-    def close_gripper_callback(self, request, response):
-        """Handle gripper close service call."""
-        self.get_logger().info('Closing gripper')
-        success = self.send_script(self.script_path_close)
-        if success:
-            self.get_logger().info('Gripper closed successfully')
-        else:
-            self.get_logger().error('Failed to close gripper')
-        return response
+    def open_gripper(self):
+        """Open gripper using UR-script"""
+        try:
+            with open(script_path3, "rb") as f:
+                script = f.read()
+                self.socket.send(script)
+            print("Gripper opened")
+            time.sleep(0.5)
+        except Exception as e:
+            print(f"Gripper open failed: {e}")
 
-    def control_gripper_callback(self, request, response):
-        """Handle custom gripper control service call."""
-        self.get_logger().info(f'Controlling gripper: force={request.force}, speed={request.speed}, position={request.position}')
-        force = max(0, min(255, int(request.force)))
-        speed = max(0, min(255, int(request.speed)))
-        position = max(0, min(255, int(request.position)))
+    def __del__(self):
+        """Cleanup socket connection on destruction"""
+        try:
+            self.socket.close()
+            print("Socket connection closed")
+        except Exception as e:
+            print(f"Error closing socket: {e}")
 
-        additional_commands = (
-            f"rq_set_force({force})\r\n"
-            f"rq_set_speed({speed})\r\n"
-            f"rq_move_and_wait({position})\r\n"
-        )
-
-        success = self.send_script(self.script_path_close, additional_commands)
-        response.success = success
-        if success:
-            response.message = "Gripper control executed successfully"
-            self.get_logger().info(response.message)
-        else:
-            response.message = "Failed to execute gripper control"
-            self.get_logger().error(response.message)
-
-        return response
-
-    def destroy_node(self):
-        """Clean up resources on shutdown."""
-        if self.socket:
-            try:
-                self.socket.close()
-            except:
-                pass
-        if self.script_socket:
-            try:
-                self.script_socket.close()
-            except:
-                pass
-        self.get_logger().info('Disconnected from gripper')
-        super().destroy_node()
-
-def main(args=None):
-    rclpy.init(args=args)
-    node = GripperControlNode()
+def main():
     try:
-        rclpy.spin(node)
-    except KeyboardInterrupt:
-        node.get_logger().info('Node interrupted by user')
+        gripper = GripperControl()
+        print("Testing gripper activation...")
+        gripper._activate_gripper()  # ทดสอบการ activate gripper
+        print("Testing gripper open...")
+        gripper.open_gripper()  # ทดสอบการเปิด gripper
+        time.sleep(2)
+        print("Testing gripper close...")
+        gripper.close_gripper()  # ทดสอบการปิด gripper
     except Exception as e:
-        node.get_logger().error(f'Unexpected error: {e}')
-    finally:
-        node.destroy_node()
-        rclpy.shutdown()
+        print(f"Error in main: {e}")
 
 if __name__ == '__main__':
-    main()
+        main()

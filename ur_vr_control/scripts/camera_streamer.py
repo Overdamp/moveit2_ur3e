@@ -14,13 +14,13 @@ class CameraStreamer(Node):
     def __init__(self):
         super().__init__('camera_streamer')
         # ประกาศพารามิเตอร์
-        self.declare_parameter('camera_topic', '/camera/image_raw')
-        self.declare_parameter('vr_host', '127.0.0.1')
+        self.declare_parameter('camera_topic', '/zed/zed_node/rgb/image_rect_color')
+        self.declare_parameter('vr_host', '10.9.157.113')
         self.declare_parameter('vr_port', 5556)
         self.declare_parameter('quality', 50)
-        self.declare_parameter('frame_rate', 30.0)  # อัตราเฟรมต่อวินาที
-        self.declare_parameter('image_width', 640)  # ความกว้างของภาพ
-        self.declare_parameter('image_height', 480)  # ความสูงของภาพ
+        self.declare_parameter('frame_rate', 30.0)
+        self.declare_parameter('image_width', 640)
+        self.declare_parameter('image_height', 480)
 
         # อ่านพารามิเตอร์
         self.camera_topic = self.get_parameter('camera_topic').get_parameter_value().string_value
@@ -49,7 +49,7 @@ class CameraStreamer(Node):
         self.sock = None
         self.last_frame_time = 0.0
         self.frame_interval = 1.0 / self.frame_rate
-        self.lock = threading.Lock()  # สำหรับจัดการ thread-safe
+        self.lock = threading.Lock()
         self.is_running = True
 
         # เริ่ม thread สำหรับจัดการการเชื่อมต่อ
@@ -61,7 +61,7 @@ class CameraStreamer(Node):
         while self.is_running and rclpy.ok():
             try:
                 self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                self.sock.settimeout(5.0)  # ตั้ง timeout การเชื่อมต่อ
+                self.sock.settimeout(5.0)
                 self.sock.connect((self.vr_host, self.vr_port))
                 self.get_logger().info(f'Connected to VR server at {self.vr_host}:{self.vr_port}')
                 break
@@ -71,7 +71,7 @@ class CameraStreamer(Node):
                 self.get_logger().error(f'Failed to connect to VR server: {e}')
             finally:
                 if self.sock is None or not self.is_socket_connected():
-                    time.sleep(1.0)  # รอ 1 วินาทีก่อนลองใหม่
+                    time.sleep(1.0)
 
     def image_callback(self, msg):
         """Callback เมื่อได้รับภาพจาก topic"""
@@ -85,11 +85,27 @@ class CameraStreamer(Node):
         try:
             with self.lock:
                 # แปลง ROS Image message เป็น OpenCV image
-                cv_image = self.br.imgmsg_to_cv2(msg, desired_encoding='bgr8')
+                try:
+                    cv_image = self.br.imgmsg_to_cv2(msg, desired_encoding='bgr8')
+                except Exception as e:
+                    self.get_logger().error(f'Failed to convert ROS image to OpenCV: {e}')
+                    return
+
+                # ตรวจสอบว่า cv_image ไม่ว่างเปล่า
+                if cv_image is None or cv_image.size == 0:
+                    self.get_logger().error('Received empty or invalid image from topic')
+                    return
+
+                # บันทึกข้อมูลขนาดภาพเพื่อดีบั๊ก
+                self.get_logger().debug(f'Image shape: {cv_image.shape}, dtype: {cv_image.dtype}')
 
                 # ปรับขนาดภาพ
                 if self.image_width > 0 and self.image_height > 0:
-                    cv_image = cv2.resize(cv_image, (self.image_width, self.image_height))
+                    try:
+                        cv_image = cv2.resize(cv_image, (self.image_width, self.image_height))
+                    except Exception as e:
+                        self.get_logger().error(f'Failed to resize image: {e}')
+                        return
 
                 # แปลงภาพเป็น JPEG
                 encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), max(0, min(self.quality, 100))]
@@ -99,7 +115,7 @@ class CameraStreamer(Node):
                     return
 
                 frame_size = len(buffer)
-                if frame_size > 1024 * 1024 * 10:  # จำกัดขนาดสูงสุด 10MB
+                if frame_size > 1024 * 1024 * 10:
                     self.get_logger().error(f'Frame size too large: {frame_size} bytes')
                     return
 
